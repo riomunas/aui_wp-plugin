@@ -10,6 +10,64 @@ class DataMahasiswaHelper {
         // Implementasi fungsi pengambilan data mahasiswa berdasarkan tanggal lulus
         // ...
     }
+    
+    public static function generateGraduationNumber($id, $date_of_graduated) {
+        // Mulai transaksi
+        global $auidb;
+        //cari data mahasiswa pakai id
+        $mahasiswa = DataMahasiswaHelper::getDataMahasiswaById($id);
+        
+        $dateTime = new DateTime($date_of_graduated);
+        // Ambil nilai tahun dan bulan
+        $year = $dateTime->format('Y');
+        $month = $dateTime->format('n');
+        
+        //cari data counters yang akan di locking kalau tidak nemu insert baru
+        $counter = $auidb->get_row($auidb->prepare(
+            "SELECT * FROM counters WHERE type = %s AND degree_id = %d AND year = %d AND month = %d FOR UPDATE",
+            'CERTIFICATE', $mahasiswa->degree_id, $year, $month
+        ));
+        
+        $counter_id = null;
+        
+        try {
+            if ($counter) {
+                // Baris ditemukan, lakukan operasi yang membutuhkan locking di sini
+                // Misalnya update counter
+                $auidb->update(
+                    'counters',
+                    array('counter' => $counter->counter + 1), // Update count
+                    array('id' => $counter->id)            // Kondisi update
+                );
+                $counter_id = $counter->id;
+            } else {
+                // Baris tidak ditemukan, insert baris baru
+                $auidb->insert(
+                    'counters',
+                    array(
+                        'type' => 'CERTIFICATE',
+                        'degree_id' => $mahasiswa->degree_id,
+                        'year' => $year,
+                        'month' => $month,
+                        'counter' => 1 // Initial count
+                    )
+                );
+                $counter_id = $wpdb->insert_id;
+            }
+            // Komit transaksi
+            $auidb->query('COMMIT');
+        } catch (Exception $e) {
+            // Rollback transaksi jika terjadi kesalahan
+            $auidb->query('ROLLBACK');
+            throw $e;
+        }
+        
+        $number_of_graduated = $auidb->get_row(
+            $auidb->prepare("SELECT concat('AUI-GRD/',LPAD(degree_id, 2, '0'), '/', right(year, 2), LPAD(month, 2, '0'), '/', LPAD(counter, 5, '0')) as number_of_graduated  FROM `counters` WHERE id = %d", $counter_id)
+        );
+        
+        return $number_of_graduated;
+    }
 
     public static function getDataMahasiswaById($id) {
         global $auidb;

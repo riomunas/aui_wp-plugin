@@ -31,11 +31,6 @@ class Data_Mahasiswa_List_Table extends WP_List_Table {
         );
     }
     
-    // function column_cb($item) {
-    //     return sprintf(
-    //         '<input type="checkbox" name="bulk-action[]" value="%s" />', $item->id
-    //     );
-    // }
     
     // Mendapatkan data untuk ditampilkan dalam tabel
     public function prepare_items() {
@@ -75,10 +70,9 @@ class Data_Mahasiswa_List_Table extends WP_List_Table {
     public function column_default( $item, $column_name ) {
         switch ( $column_name ) {
             case 'name':
-                $edit_link = sprintf('<a href="?page=data-mahasiswa&action=edit&id=%s">Edit</a>', $item->id);
+                $set_graduated_link = sprintf('<a href="?page=data-mahasiswa&action=graduated&id=%s">Set To Graduated</a>', $item->id);
                 $delete_link = sprintf('<a href="?page=data-mahasiswa&action=delete&id=%s">Delete</a>', $item->id);
-                $view_link = sprintf('<a href="?page=data-mahasiswa&action=view&id=%s">View</a>', $item->id);
-                $actions = ['edit' => $edit_link, 'view' => $view_link, 'delete' => $delete_link];
+                $actions = ['edit' => $set_graduated_link, 'delete' => $delete_link];
                 return sprintf('%1$s %2$s', $item->$column_name, $this->row_actions($actions));
             case 'nim':
             case 'degree_name':
@@ -97,6 +91,18 @@ function table_delete_item($id) {
     $auidb->update('students', ['deleted_at' => current_time('mysql')], ['id' => $id]);
 }
 
+function table_set_graduated_item($id, $date_of_graduated) {
+    global $auidb;
+    $result = DataMahasiswaHelper::generateGraduationNumber($id, $date_of_graduated);
+    $auidb->update('students', [
+        'date_of_graduated' => $date_of_graduated,
+        'number_of_graduated' => $result->number_of_graduated,
+        'status' => 'GRADUATED'
+    ], ['id' => $id]);
+    
+    //TODO generate pdf (cetak, preview)
+}
+
 function show_form_delete($mahasiswa) {
 ?>
     <form>
@@ -112,6 +118,7 @@ function custom_media_table_action_handler() {
         if (isset($_GET['action']) && isset($_GET['id'])) {
             $action = $_GET['action'];
             $id = intval($_GET['id']);
+            $date_of_graduated = $_GET['date_of_graduated'];
             
             $mahasiswa = DataMahasiswaHelper::getDataMahasiswaById($id);
 
@@ -123,7 +130,11 @@ function custom_media_table_action_handler() {
                 case 'confirm-delete':
                     // Tambahkan logika untuk menghapus item
                     table_delete_item($id);
-                    echo '<div class="notice notice-success is-dismissible"><p>Data mahsiswa ' . $mahasiswa->name . '('.$mahasiswa->nim.') dihapus.</p></div>';
+                    echo '<div class="notice notice-success is-dismissible"><p>Data mahsiswa ' . $mahasiswa->name . '('.$mahasiswa->nim.') Deleted.</p></div>';
+                    break;
+                case 'confirm-graduated-date':
+                    table_set_graduated_item($id, $date_of_graduated);
+                    echo '<div class="notice notice-success is-dismissible"><p>Data mahsiswa ' . $mahasiswa->name . '('.$mahasiswa->nim.') set to Graduated.</p></div>';
                     break;
                 case 'return-to-the-base':
                     break;

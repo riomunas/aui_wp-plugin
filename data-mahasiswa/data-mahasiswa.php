@@ -47,11 +47,18 @@ function data_mahasiswa_page() {
             </div>
             <?php
             return; // Menghentikan eksekusi untuk menampilkan form konfirmasi
-        } else if ($_GET['action'] == 'edit') {
+        } else if ($_GET['action'] == 'graduated') {
             ?>
             <div class="wrap">
-                <h1 class="wp-heading-inline">Edit Data Mahasiswa</h1>
-                <?= print_r($mahasiswa) ?>
+                <h1 class="wp-heading-inline">Graduated Details</h1>
+                <p>Set Graduated Date for <?= $mahasiswa->name ?> (<?= $mahasiswa->nim ?>).</p>
+                <form method="get">
+                    <input type="date" name="date_of_graduated" required />
+                    <input type="hidden" name="page" value="data-mahasiswa" />
+                    <input type="hidden" name="id" value="<?php echo esc_attr($id); ?>">
+                    <button type="submit" name="action" value="confirm-graduated-date" class="button button-primary">Yes, Set as Graduated</button>
+                    <a href="?page=data-mahasiswa" class="button">Cancel</a>
+                </form>
             </div>
             <?php
             return;
