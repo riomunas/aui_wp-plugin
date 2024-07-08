@@ -1,0 +1,156 @@
+    .data-found {
+        text-align: center;
+        color: lightseagreen;
+        margin: 30px 0px;
+        border: 1px solid lightseagreen;
+        padding: 15px;
+        border-radius: 10px;
+    }
+    
+    .data-not-found {
+        text-align: center;
+        color: crimson;
+        margin: 30px 0px;
+        border: 1px solid crimson;
+        padding: 15px;
+        border-radius: 10px;
+    }
+    
+    .container-mahasiswa-form-row {
+        flex-direction: row;
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-bottom: 50px;
+        gap: 5px;
+        padding: 10px 0px;
+    }
+
+    @media (max-width: 600px) {
+        .container-mahasiswa-form-row {
+            flex-direction: column;
+        }
+    }
+    
+    .alert-success {
+      color: #155724; /* Warna teks */
+      background-color: #d4edda; /* Warna latar belakang */
+      border: 1px solid #c3e6cb; /* Warna border */
+      padding: 0.75rem 1.25rem; /* Padding */
+      margin-bottom: 50px; /* Margin bawah */
+      border-radius: 0.25rem; /* Sudut border */
+    }
+
+  .certificate-container {
+      /*background-image: url(http://asean-university.com/wp-content/uploads/2024/06/sertifikat-background.png);*/
+    background-repeat: no-repeat;
+    background-size: contain;
+    font-family: 'Montserrat', sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    /*height: 100%;*/
+    margin-top:20px;
+    margin-bottom:100px;
+  }
+
+  .certificate {
+    max-width: 100%;
+    padding: 40px;
+    text-align: center;
+    position: relative;
+  }
+
+  .certificate img {
+    margin-bottom: 20px;
+    display: inline;
+  }
+
+  .certificate-title {
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+  }
+
+  .student-name {
+    font-size: 28pt;
+    line-height: 28pt;
+    font-weight: bold;
+  }
+
+  .personal-info {
+    font-size: 16px;
+    margin-bottom: 10px;
+  }
+
+  .personal-info.nim {
+    font-weight: bold;
+    margin-top:20px;
+    margin-bottom: 90px;
+  }
+
+  .personal-info.faculty {
+    font-size: 32pt;
+    line-height: 32pt
+  }
+
+  .certificate img {
+    padding-bottom: 50px;
+  }
+  
+  
+    /* CSS untuk memperindah tampilan */
+    
+    .mahasiswa-form-row {
+        font-family: Arial, sans-serif;
+        display: flex;
+        gap:5px;
+        justify-content: center;
+        align-items: center;
+    }
+    .mahasiswa-form-row label {
+
+    }
+    .mahasiswa-form-row input {
+        height: 36px !important;
+        width: 300px;
+        border-radius: 10px !important;
+        border: 1px solid #2f5aae !important;
+        padding-block: 0px !important;
+        padding-inline: 10px;
+    }
+    .mahasiswa-form-row button {
+        padding: 5px 25px !important;
+        background-color: #2f5aae;
+        color: white;
+        cursor: pointer;
+        height: 36px !important;
+        border-radius: 10px !important;
+    }
+    /* CSS untuk responsif */
+    @media (max-width: 600px) {
+        .mahasiswa-form-row {
+            flex-direction: column;
+        }
+        .mahasiswa-form-row label {
+            flex: none;
+        }
+        .mahasiswa-form-row input{
+            width: 100%;
+        }
+        .mahasiswa-form-row button {
+            width: 100%;
+        }
+        .mahasiswa-form-row label {
+            text-align: left;
+        }
+        .mahasiswa-form-row button {
+            text-align: center;
+        }
+    }
+    
+    #mahasiswa-form {
+        margin: 100px 0;
+    }
