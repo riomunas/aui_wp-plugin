@@ -70,9 +70,15 @@ class Data_Mahasiswa_List_Table extends WP_List_Table {
     public function column_default( $item, $column_name ) {
         switch ( $column_name ) {
             case 'name':
-                $set_graduated_link = sprintf('<a href="?page=data-mahasiswa&action=graduated&id=%s">Set To Graduated</a>', $item->id);
+                $set_to_graduated_link = sprintf('<a href="?page=data-mahasiswa&action=graduated&id=%s">Set To Graduated</a>', $item->id);
                 $delete_link = sprintf('<a href="?page=data-mahasiswa&action=delete&id=%s">Delete</a>', $item->id);
-                $actions = ['edit' => $set_graduated_link, 'delete' => $delete_link];
+                $actions = [];
+                
+                if ($item->status == null) {
+                    $actions = ['delete' => $delete_link];
+                } else if ($item->status == 'REGISTERED') {
+                   $actions = ['set_to_graduated' => $set_to_graduated_link];
+                }
                 return sprintf('%1$s %2$s', $item->$column_name, $this->row_actions($actions));
             case 'nim':
             case 'degree_name':
@@ -93,14 +99,17 @@ function table_delete_item($id) {
 
 function table_set_graduated_item($id, $date_of_graduated) {
     global $auidb;
-    $result = DataMahasiswaHelper::generateGraduationNumber($id, $date_of_graduated);
+    $mahasiswa = DataMahasiswaHelper::getDataMahasiswaById($id);
+    if ($mahasiswa->status == 'GRADUATED') return;
+    
+    $result = DataMahasiswaHelper::generateGraduationNumber($mahasiswa, $date_of_graduated);
+    DataMahasiswaHelper::generateCertificateForViewImage($mahasiswa);
     $auidb->update('students', [
         'date_of_graduated' => $date_of_graduated,
         'number_of_graduated' => $result->number_of_graduated,
         'status' => 'GRADUATED'
     ], ['id' => $id]);
     
-    //TODO generate pdf (cetak, preview)
 }
 
 function show_form_delete($mahasiswa) {
