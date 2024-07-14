@@ -105,6 +105,7 @@ add_action( 'admin_menu', 'aui_app_plugin_menu' );
 function aui_app_rewrite_rules() {
     add_rewrite_rule('^certificate/([^/]*)/?', 'index.php?certificate_number=$matches[1]', 'top'); //untuk sertifikat
     add_rewrite_rule('^search-mahasiswa/?$', 'index.php?search_mahasiswa=1', 'top');
+    add_rewrite_rule('^pendaftaran-mahasiswa/?$', 'index.php?pendaftaran_mahasiswa=1', 'top');
 }
 add_action('init', 'aui_app_rewrite_rules');
 
@@ -112,6 +113,7 @@ add_action('init', 'aui_app_rewrite_rules');
 function aui_app_query_vars($vars) {
     $vars[] = 'certificate_number'; //sertifikat
     $vars[] = 'search_mahasiswa';//pencarian mahasiswa
+    $vars[] = 'pendaftaran_mahasiswa';//pencarian mahasiswa
     return $vars;
 }
 add_filter('query_vars', 'aui_app_query_vars');
@@ -130,6 +132,14 @@ function university_app_template_redirect() {
     if ($search_mahasiswa) {
         get_header(); 
         include plugin_dir_path(__FILE__) . 'data-mahasiswa/search-mahasiswa-template.php';
+        get_footer(); 
+        exit;
+    }
+    
+    $pendaftaran_mahasiswa = get_query_var('pendaftaran_mahasiswa');
+    if ($pendaftaran_mahasiswa) {
+        get_header(); 
+        include plugin_dir_path(__FILE__) . 'data-mahasiswa/pendaftaran-mahasiswa-template.php';
         get_footer(); 
         exit;
     }

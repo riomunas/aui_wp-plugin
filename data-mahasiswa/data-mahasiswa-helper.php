@@ -83,7 +83,7 @@ class DataMahasiswaHelper {
         
         $mahasiswa = $auidb->get_row($auidb->prepare("
             SELECT 
-                s.*, p.name as program_title, d.title as degree_title, d.sign_name as degree_sign_name, d.sign_title as degree_sign_title, 
+                s.*, p.name as program_title, s.title_of_graduated as degree_title, s.name_sign_of_graduated as degree_sign_name, s.title_sign_of_graduated as degree_sign_title, 
                 concat(s.city_of_birth, ' - ', c.name, ', ', DATE_FORMAT(date_of_birth, '%M %D, %Y')) birth_info,
                 DATE_FORMAT(s.date_of_graduated, '%M %D, %Y') as date_of_graduated 
             FROM students s 
@@ -201,37 +201,43 @@ class DataMahasiswaHelper {
         $pdf->SetXY(23.93, 18.77);
         $pdf->Cell(256, 4.97, 'NUMBER : '.$mahasiswa->number_of_graduated, 0, 1,'L');
         
-        
+        //set warna font hitam
         $pdf->SetTextColor(0, 0, 0);
-        $pdf->SetFont('times', 'B', 18, '', true);
         
         //name
-        $pdf->SetXY(20, 85.13);
+        $pdf->SetFont('times', 'B', 18, '', true);
+        $pdf->SetXY(20, 83.58);
         $pdf->Cell(256, 7.46, $mahasiswa->name,0, 1,'C');
         
+        //dof
+        $pdf->SetFont('times', 'I', 12, '', true);
+        $pdf->SetXY(20, 89.72);
+        $pdf->Cell(256, 4.97, $mahasiswa->birth_info,0, 1,'C');
+        
+        //student number
+        $pdf->SetFont('helvetica', 'B', 12, '', true);
+        $pdf->SetXY(20, 94.69);
+        $pdf->Cell(256, 4.97, $mahasiswa->nim, 0, 1,'C');
+        
         //deggre
-        $pdf->SetXY(20, 121.54);
+        $pdf->SetFont('times', 'B', 18, '', true);
+        $pdf->SetXY(20, 115.87);
         $pdf->Cell(256, 4.97, $mahasiswa->degree_title, 0, 1,'C');
         
+        //faculty
+        $pdf->SetFont('times', 'I', 12, '', true);
+        $pdf->SetXY(20, 123.33);
+        $pdf->Cell(256, 4.97, $mahasiswa->program_title, 0, 1,'C');
         
         //tanggal 
         $pdf->SetFont('times', '', 12, '', true);
         $pdf->SetXY(20, 154.41);
         $pdf->Cell(256, 4.97, 'Malaysia, '.$mahasiswa->date_of_graduated, 0, 1,'C');
         
-        //student number
-        $pdf->SetFont('helvetica', 'B', 12, '', true);
-        $pdf->SetXY(20, 96.24);
-        $pdf->Cell(256, 4.97, $mahasiswa->nim, 0, 1,'C');
         
-        //dof
-        $pdf->SetFont('times', 'I', 12, '', true);
-        $pdf->SetXY(20, 91.27);
-        $pdf->Cell(256, 4.97, $mahasiswa->birth_info,0, 1,'C');
         
-        //faculty
-        $pdf->SetXY(20, 129);
-        $pdf->Cell(256, 4.97, $mahasiswa->program_title, 0, 1,'C');
+        
+        
         
         //atas
         //dekan
