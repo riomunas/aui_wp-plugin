@@ -36,48 +36,48 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 <div class="scoped-semantic-ui form-container">
     
-    <h2 class="ui header">Registration</h2>
+    <h1 class="ui header">Registration Form</h1>
     <form id="pendaftaran-mahasiswa" class="ui form" enctype="multipart/form-data" method="post">
         <div class="field required">
-            <label>Nama</label>
-            <input type="text" name="nama" placeholder="Nama">
+            <label>Name</label>
+            <input type="text" name="name" placeholder="Name">
         </div>
         <div class="three fields">
             <div class="field required">
                 <label>Country</label>
                 <select id='countryDropdown' name="country" class="ui dropdown search">
-                    <option value="">Pilih Country</option>
+                    <option value="">Select Country</option>
                     <!-- Options fetched dynamically from database -->
                 </select>
             </div>
             <div class="field required">
-                <label>Tempat Lahir</label>
-                <input type="text" name="tempat_lahir" placeholder="Tempat Lahir">
+                <label>Place of birth</label>
+                <input type="text" name="place_of_birth" placeholder="Place of birth">
             </div>
             <div class="field required">
-                <label>Tanggal Lahir</label>
-                <input type="date" name="tanggal_lahir">
+                <label>Date of birth</label>
+                <input type="date" name="date_of_birth">
             </div>
         </div>
         <div class="two fields">
             <div class="field required">
                 <label>Degree</label>
                 <select id="degreeDropdown" name="degree" class="ui dropdown">
-                    <option value="">Pilih Degree</option>
+                    <option value="">Select Degree</option>
                 </select>
             </div>
             <div class="field required">
-                <label>Fakultas</label>
-                <select id='departmentDropdown' name="fakultas" class="ui dropdown search">
-                    <option value="">Pilih Fakultas</option>
+                <label>Faculty</label>
+                <select id='departmentDropdown' name="faculty" class="ui dropdown search">
+                    <option value="">Select Faculty</option>
                     <!-- Options fetched dynamically from database -->
                 </select>
             </div>
         </div>
         <div class="field required">
-            <label>Jurusan</label>
-            <select id="programDropdown" name="jurusan" class="ui dropdown search">
-                <option value="">Pilih Jurusan</option>
+            <label>Program</label>
+            <select id="programDropdown" name="program" class="ui dropdown search">
+                <option value="">Select Program</option>
                 <!-- Options will be populated based on selected Fakultas -->
             </select>
         </div>
@@ -88,27 +88,27 @@ if ( ! defined( 'ABSPATH' ) ) {
                 <input type="email" name="email" placeholder="Email">
             </div>
             <div class="field required">
-                <label>Nomor HP</label>
-                <input type="text" name="nomor_hp" placeholder="Nomor HP">
+                <label>Phone Number</label>
+                <input type="text" name="phone" placeholder="Nomor HP">
             </div>
         </div>
         
         <div class="two fields">
             <div class="field required">
-                <label>Foto</label>
-                <input type="file" name="foto" accept="image/*" onchange="previewFile(this, 'foto-preview')">
+                <label>Selfie</label>
+                <input type="file" name="selfie" accept="image/*" onchange="previewFile(this, 'foto-preview')">
                 <img id="foto-preview" class="hidden ui image" style="max-width: 150px; margin:10px 0px">
             </div>
             <div class="field required">
-                <label>KTP</label>
-                <input type="file" name="ktp" accept="image/*" onchange="previewFile(this, 'ktp-preview')">
+                <label>Identity Image</label>
+                <input type="file" name="identity" accept="image/*" onchange="previewFile(this, 'ktp-preview')">
                 <img id="ktp-preview" class="hidden ui image" style="max-width: 150px; margin:10px 0px">
             </div>
         </div>
         
         <div class="field required">
-            <label>Alamat</label>
-            <textarea name="alamat" placeholder="Alamat"></textarea>
+            <label>Address</label>
+            <textarea name="address" placeholder="Address"></textarea>
         </div>
         <button type="submit" class="ui primary button">Submit</button>
         <button id="btnReset" type="button" class="ui secondary button">Reset</button>
@@ -117,6 +117,8 @@ if ( ! defined( 'ABSPATH' ) ) {
         <div class="ui active inverted dimmer" id="loading-dimmer" style="display: none;">
             <div class="ui text loader">Loading</div>
         </div>
+        
+        <div class="ui error message"></div>
     </form>
 </div>
 
@@ -1266,7 +1268,7 @@ if ( ! defined( 'ABSPATH' ) ) {
             
         //country
         const countryDropdown = $('#countryDropdown');
-        countryDropdown.append(`<option value="0">Pilih Country</option>`);
+        countryDropdown.append(`<option value="0">Select Country</option>`);
         countries.forEach(country => {
             countryDropdown.append(`<option value="${country.value}"><div class="item"> <i class="${country.value} flag"></i>${country.name}</div></option>`);
         });
@@ -1280,7 +1282,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     
         //department
         const departmentDropdown = $('#departmentDropdown');
-        departmentDropdown.append(`<option value="0">Pilih Fakultas</option>`);
+        departmentDropdown.append(`<option value="0">Select Faculty</option>`);
         departments.forEach(department => {
             departmentDropdown.append(`<option value="${department.id}">${department.name}</option>`);
         });
@@ -1303,7 +1305,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                 programDropdown.empty(); // Clear previous options
                 
                 console.log(">> department_id , degree_id ", value, degreeId)
-                programDropdown.append(`<option value="0">Pilih Jurusan</option>`);
+                programDropdown.append(`<option value="0">Select Program</option>`);
                 programs
                     .filter(program => (program.department_id == value && program.degree_id == degreeId))
                     .forEach(program => {
@@ -1326,18 +1328,42 @@ if ( ! defined( 'ABSPATH' ) ) {
                 degreeDropdown.dropdown('hide');
             }
         });
+        
+        $('#pendaftaran-mahasiswa')
+          .form({   
+            fields: {
+                name : 'empty',
+                country : 'empty',
+                place_of_birth : 'empty',
+                date_of_birth : 'empty',
+                degree : 'empty',
+                faculty : 'empty',
+                program : 'empty',
+                email : 'empty',
+                phone : 'empty',
+                selfie : 'empty',
+                identity : 'empty',
+                address : 'empty'
+            }
+          })
+        ;           
     
         $('#pendaftaran-mahasiswa').submit(function(e) {
             e.preventDefault();
             var form = $(this);
-            form.addClass('loading');
-            $('#pendaftaran-mahasiswa input').attr('readonly', true);
-            // $('#loading-dimmer').show();
+            if (form.form('is valid')) {
+                $('.dropdown').addClass('disabled')
+                $('#pendaftaran-mahasiswa input').attr('readonly', true);
+                $('#loading-dimmer').show();
+            }
+            
+            
+            
             // form.find('input, select, textarea, button').prop('disabled', true);
     
             // var formData = new FormData(this);
             // $.ajax({
-            //     url: '<?php echo admin_url("admin-ajax.php"); ?>',
+            //     url: '<?php //echo admin_url("admin-ajax.php"); ?>',
             //     type: 'POST',
             //     data: formData,
             //     processData: false,
