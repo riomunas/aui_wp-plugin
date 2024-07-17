@@ -14,9 +14,127 @@ use setasign\Fpdi\Tcpdf\Fpdi;
 
 class DataMahasiswaHelper {
 
-    public static function getDataMahasiswaByGraduatedDate($dateOfgraduated) {
-        // Implementasi fungsi pengambilan data mahasiswa berdasarkan tanggal lulus
-        // ...
+    public static function getDataCountries() {
+        global $auidb;
+        
+        // Execute the query
+        return $auidb->get_results("
+            SELECT id, kode, name 
+            FROM countries
+            ORDER BY id
+        ");
+    }
+    public static function getDataDegrees() {
+        global $auidb;
+        
+        // Execute the query
+        return $auidb->get_results("
+            SELECT id, kode 
+            FROM degrees
+            ORDER BY id
+        ");
+    }
+    
+    public static function getDataDepartments() {
+        global $auidb;
+        
+        // Execute the query
+        return $auidb->get_results("
+            SELECT id, kode, name, sign_title 
+            FROM departments
+            ORDER BY name
+        ");
+    }
+    
+    public static function getDataPrograms() {
+        global $auidb;
+        
+        // Execute the query
+        return $auidb->get_results("
+            SELECT id, name, department_id, degree_id 
+            FROM programs
+            ORDER BY name
+        ");
+    }
+    
+    public static function saveDataMahasiswa($data) {
+        global $auidb;
+        
+        //buat nim
+        $nim = DataMahasiswaHelper::generateNim($data);
+        
+        //simpan image
+        $upload_dir = wp_upload_dir();
+        $uploadDirectory = $upload_dir['basedir'] . '/student-photos/'; // Direktori khusus untuk file sementara
+    
+
+        // Check and create upload directory if not exists
+        if (!is_dir($uploadDirectory)) {
+            mkdir($uploadDirectory, 0755, true);
+        }
+        
+        // Mendapatkan ekstensi file
+        $photoFileType = strtolower(pathinfo($data['photo']["name"], PATHINFO_EXTENSION));
+        $ktpFileType = strtolower(pathinfo($data['ktp']["name"], PATHINFO_EXTENSION));
+        
+        
+        // Handling selfie upload
+        $photo = $data['photo'];
+        $photoName = $nim.'_photo_.'.$photoFileType;
+        $photo_path = $uploadDirectory . $photoName;
+        move_uploaded_file($photo['tmp_name'], $photo_path);
+    
+        // Handling identity upload
+        $ktp = $data['ktp'];
+        $ktpName = $nim.'_ktp_.'.$ktpFileType;
+        $ktp_path = $uploadDirectory . $ktpName;
+        move_uploaded_file($ktp['tmp_name'], $ktp_path);
+        
+        $current_date = date('Y-m-d');
+        
+        //simpan data mahasiswa
+        $result = $auidb->insert('students',
+            array(
+                'nim' => $nim,
+                'name' => $data['name'],
+                'city_of_birth' => $data['city_of_birth'],
+                'date_of_birth' => $data['date_of_birth'],
+                'email' => $data['email'],
+                'address1' => $data['address'],
+                'ktp_path' => $ktpName,
+                'photo_path' => $photoName,
+                'status' => 'PENDING',
+                'program_id' => $data['program'],
+                'department_id' => $data['faculty'],
+                'degree_id' => $data['degree'],
+                'country_id' => $data['country'],
+                'date_of_registered' => $current_date,
+                'created_at' => $current_date
+            )
+        );
+
+        if ($result === false) {
+            // Penyisipan gagal
+            wp_send_json_error($auidb->last_error);
+            wp_die();
+        } else {
+            //kirim e-mail
+            
+            wp_send_json_success($data);
+        }
+    }
+    
+    public static function generateNim($data) {
+            // Menggabungkan ketiga string menjadi satu
+        $combinedString = $data['email'].'-'. $data['date_of_birth'] .'-'. $data['degree'].'-'. $data['faculty'] .'-'. $data['program'];
+        
+        // Menggunakan hash md5
+        $hash = md5($combinedString);
+        
+        // Mengkonversi hash ke format numerik
+        $uniqueNumber = hexdec(substr($hash, 0, 12)); // Mengambil 12 karakter pertama untuk menghindari overflow
+    
+        return $uniqueNumber;
     }
     
     public static function generateGraduationNumber($mahasiswa, $date_of_graduated) {

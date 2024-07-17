@@ -13,6 +13,61 @@ add_action( 'wp_enqueue_scripts', 'data_mahasiswa_plugin_enqueue_styles' );
 require_once("data-mahasiswa-helper.php");
 require_once("Data_Mahasiswa_List_Table.php");
 
+// Hook auipmt_mahasiswaregistration_ajax_handler function to AJAX hooks
+add_action('wp_ajax_auipmt_mahasiswaregistration', 'auipmt_mahasiswaregistration_handler');
+add_action('wp_ajax_nopriv_auipmt_mahasiswaregistration', 'auipmt_mahasiswaregistration_handler');
+// Function to handle AJAX requests from the registration form
+function auipmt_mahasiswaregistration_handler() {
+    if (isset($_POST['name']) &&isset($_POST['country']) &&isset($_POST['city_of_birth']) &&isset($_POST['date_of_birth']) 
+        &&isset($_POST['degree']) &&isset($_POST['faculty']) &&isset($_POST['program']) &&isset($_POST['email']) 
+        &&isset($_POST['phone']) &&isset($_FILES['selfie']) &&isset($_FILES['identity']) &&isset($_POST['address'])) {
+            
+        
+            // Store other form data
+            $data = [
+                'name' => sanitize_text_field($_POST['name']),
+                'country' => sanitize_text_field($_POST['country']),
+                'city_of_birth' => sanitize_text_field($_POST['city_of_birth']),
+                'date_of_birth' => sanitize_text_field($_POST['date_of_birth']),
+                'degree' => sanitize_text_field($_POST['degree']),
+                'faculty' => sanitize_text_field($_POST['faculty']),
+                'program' => sanitize_text_field($_POST['program']),
+                'email' => sanitize_text_field($_POST['email']),
+                'phone' => sanitize_text_field($_POST['phone']),
+                'photo' => $_FILES['selfie'],
+                'ktp' => $_FILES['identity'],
+                'address' => sanitize_text_field($_POST['address'])
+            ];
+
+            //save mahasiswa
+            DataMahasiswaHelper::saveDataMahasiswa($data);
+        // wp_send_json_success('Pendaftaran berhasil. Email konfirmasi telah dikirim ke '.$name);
+    } else {
+        wp_send_json_error('Data is not complate');
+    }
+    wp_die();
+}
+
+// Hook the beasiswa_registration_ajax_handler function to AJAX hooks
+add_action('wp_ajax_auipmt_initdata', 'auipmt_initdata_handler');
+add_action('wp_ajax_nopriv_auipmt_initdata', 'auipmt_initdata_handler');
+// Function to handle AJAX requests from the registration form
+function auipmt_initdata_handler() {
+    $name = 'rio';
+    $degrees = DataMahasiswaHelper::getDataDegrees();
+    $departments = DataMahasiswaHelper::getDataDepartments();
+    $programs = DataMahasiswaHelper::getDataPrograms();
+    $countries = DataMahasiswaHelper::getDataCountries();
+    
+    return wp_send_json(array(
+        'countries' => $countries,
+        'degrees' => $degrees,
+        'departments' => $departments,
+        'programs' => $programs
+    ));
+}
+
+
 function handle_form_search_mahasiswa_callback($search_keyword) {
     if (!$search_keyword) return;
     
@@ -117,3 +172,5 @@ function data_mahasiswa_page() {
 <?php
 }
 ?>
+
+
