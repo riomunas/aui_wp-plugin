@@ -71,11 +71,12 @@ class Data_Mahasiswa_List_Table extends WP_List_Table {
         switch ( $column_name ) {
             case 'name':
                 $set_to_graduated_link = sprintf('<a href="?page=data-mahasiswa&action=graduated&id=%s">Set To Graduated</a>', $item->id);
+                $set_to_registered_link = sprintf('<a href="?page=data-mahasiswa&action=registered&id=%s">Set To Registered</a>', $item->id);
                 $delete_link = sprintf('<a href="?page=data-mahasiswa&action=delete&id=%s">Delete</a>', $item->id);
                 $actions = [];
                 
-                if ($item->status == null) {
-                    $actions = ['delete' => $delete_link];
+                if ($item->status == 'PENDING') {
+                    $actions = ['set_to_registered_link' => $set_to_registered_link, 'delete' => $delete_link];
                 } else if ($item->status == 'REGISTERED') {
                    $actions = ['set_to_graduated' => $set_to_graduated_link];
                 }
@@ -109,7 +110,16 @@ function table_set_graduated_item($id, $date_of_graduated) {
         'number_of_graduated' => $result->number_of_graduated,
         'status' => 'GRADUATED'
     ], ['id' => $id]);
+}
+
+function table_set_registered_item($id) {
+    global $auidb;
+    $mahasiswa = DataMahasiswaHelper::getDataMahasiswaById($id);
+    if ($mahasiswa->status == 'GRADUATED' || $mahasiswa->status == 'REGISTERED') return;
     
+    $auidb->update('students', [
+        'status' => 'REGISTERED'
+    ], ['id' => $id]);
 }
 
 function show_form_delete($mahasiswa) {
@@ -144,6 +154,10 @@ function custom_media_table_action_handler() {
                 case 'confirm-graduated-date':
                     table_set_graduated_item($id, $date_of_graduated);
                     echo '<div class="notice notice-success is-dismissible"><p>Data mahsiswa ' . $mahasiswa->name . '('.$mahasiswa->nim.') set to Graduated.</p></div>';
+                    break;
+                case 'registered':
+                    table_set_registered_item($id);
+                    echo '<div class="notice notice-success is-dismissible"><p>Data mahsiswa ' . $mahasiswa->name . '('.$mahasiswa->nim.') set to Registed.</p></div>';
                     break;
                 case 'return-to-the-base':
                     break;

@@ -76,7 +76,7 @@ if ( ! defined( 'ABSPATH' ) ) {
         </div>
         <div class="field required">
             <label>Program</label>
-            <select id="programDropdown" name="program" class="ui dropdown search">
+            <select id="programDropdown" name="program" class="ui dropdown">
                 <option value="">Select Program</option>
                 <!-- Options will be populated based on selected Fakultas -->
             </select>
@@ -179,7 +179,7 @@ if ( ! defined( 'ABSPATH' ) ) {
             
         //country
         const countryDropdown = $('#countryDropdown');
-        countryDropdown.append(`<option value="0">Select Country</option>`);
+        // countryDropdown.append(`<option value="">Select Country</option>`);
         countries.forEach(country => {
             countryDropdown.append(`<option value="${country.id}"><div class="item"> <i class="${country.kode} flag"></i>${country.name}</div></option>`);
         });
@@ -193,7 +193,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     
         //department
         const departmentDropdown = $('#departmentDropdown');
-        departmentDropdown.append(`<option value="0">Select Faculty</option>`);
+        // departmentDropdown.append(`<option value="0">Select Faculty</option>`);
         departments.forEach(department => {
             departmentDropdown.append(`<option value="${department.id}">${department.name}</option>`);
         });
@@ -216,7 +216,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                 programDropdown.empty(); // Clear previous options
                 
                 console.log(">> department_id , degree_id ", value, degreeId)
-                programDropdown.append(`<option value="0">Select Program</option>`);
+                // programDropdown.append(`<option value="0">Select Program</option>`);
                 programs
                     .filter(program => (program.department_id == value && program.degree_id == degreeId))
                     .forEach(program => {
@@ -262,6 +262,8 @@ if ( ! defined( 'ABSPATH' ) ) {
         $('#pendaftaran-mahasiswa').submit(async function(e) {
             e.preventDefault();
             var form = $('#pendaftaran-mahasiswa');
+            $('.error.message').hide();
+            $('.positive.message').hide();
             
             if (form.form('is valid')) {
                 form.addClass('loading');
@@ -270,27 +272,6 @@ if ( ! defined( 'ABSPATH' ) ) {
                 $('#pendaftaran-mahasiswa button').attr('disabled', true);
                 
                 var formData = new FormData(this);
-                // await fetch('<?php echo admin_url( 'admin-ajax.php' ).'?action=auipmt_mahasiswaregistration1' ?>', {
-                //   method: 'POST',
-                //   body: formData,
-                //   processData: false, // Menonaktifkan pemrosesan data
-                //   contentType: false, // Menonaktifkan header konten
-                // })
-                // .then(response => response.json())
-                // .then(data => {
-                //     $('#pendaftaran-mahasiswa').removeClass('loading')
-                //     $('#pendaftaran-mahasiswa input').removeAttr('readonly', false);
-                //     $('#pendaftaran-mahasiswa button').removeAttr('disabled', false);
-                
-                //     $('.positive.message').show();
-                // })
-                // .catch(error => {
-                //     $('#pendaftaran-mahasiswa').removeClass('loading')
-                //     $('#pendaftaran-mahasiswa input').removeAttr('readonly', false);
-                //     $('#pendaftaran-mahasiswa button').removeAttr('disabled', false);
-                //     console.log(error.data);
-                //     $('.error.message').html(error.data);
-                // });
                 
                 try {
                   const response = await fetch('<?= admin_url( 'admin-ajax.php' ).'?action=auipmt_mahasiswaregistration' ?>', {
@@ -299,53 +280,16 @@ if ( ! defined( 'ABSPATH' ) ) {
                       processData: false, // Menonaktifkan pemrosesan data
                       contentType: false, // Menonaktifkan header konten
                     })
-                    // .then(response => response.json())
-                    // .then(data => {
-                    //     console.log({data});
-                    //     $('#pendaftaran-mahasiswa').removeClass('loading')
-                    //     $('#pendaftaran-mahasiswa input').removeAttr('readonly', false);
-                    //     $('#pendaftaran-mahasiswa button').removeAttr('disabled', false);
                     
-                    //     $('.positive.message').show();
-                    // })
-                    // .catch(error => {
-                    //     $('#pendaftaran-mahasiswa').removeClass('loading')
-                    //     $('#pendaftaran-mahasiswa input').removeAttr('readonly', false);
-                    //     $('#pendaftaran-mahasiswa button').removeAttr('disabled', false);
-                    //     console.log({error});
-                    // })
-                    ;
-                    // try {
-                    //   const data = await response.json();
-                    //   console.log({ data });
-                      
-                    //   // Handle success
-                    //   $('#pendaftaran-mahasiswa').removeClass('loading');
-                    //   $('#pendaftaran-mahasiswa input').removeAttr('readonly');
-                    //   $('#pendaftaran-mahasiswa button').removeAttr('disabled');
-                    //   $('.positive.message').show();
-                    // } catch (error) {
-                    //   // Handle error
-                    //   $('#pendaftaran-mahasiswa').removeClass('loading');
-                    //   $('#pendaftaran-mahasiswa input').removeAttr('readonly');
-                    //   $('#pendaftaran-mahasiswa button').removeAttr('disabled');
-                    //   console.log('Error parsing JSON:', error);
-                    //   // Optionally, check if the response was a bad request
-                    //   if (!response.ok) {
-                    //     console.log('Bad request. Status:', response.status);
-                    //     // Handle bad request error here
-                    //   }
-                    // }
-                    
+                  const result = await response.json();
                   if (response.ok) {
-                    console.log('Promise resolved and HTTP status is successful');
-                    const data = await response.json();
-                    console.log({ data });
+                    console.log({ result });
                       
                       //reset form
                     $('#pendaftaran-mahasiswa').form('clear');
                     $('#foto-preview').addClass('hidden');
                     $('#ktp-preview').addClass('hidden');
+                    $('.dropdown').removeClass('disabled')
                   
                       // Handle success
                     $('#pendaftaran-mahasiswa').removeClass('loading');
@@ -354,14 +298,13 @@ if ( ! defined( 'ABSPATH' ) ) {
                     $('.positive.message').show();
                   } else {
                     // Custom message for failed HTTP codes
-                    if (response.status === 400) throw new Error('404, Bad Request');
-                    if (response.status === 404) throw new Error('404, Not found');
-                    if (response.status === 500) throw new Error('500, internal server error');
-                    // For any other server error
+                    if (response.status === 400) throw new Error(result.data?result.data : '400, Bad Request');
+                    if (response.status === 404) throw new Error(result.data?result.data : '404, Not found');
+                    if (response.status === 500) throw new Error(result.data?result.data : '500, internal server error');
                     throw new Error(response.status);
                   }
                 } catch (error) {
-                  // Output e.g.: "Fetch Error: 404, Not found"
+                    console.log(error);
                     $('#pendaftaran-mahasiswa').removeClass('loading')
                     $('#pendaftaran-mahasiswa input').removeAttr('readonly', false);
                     $('#pendaftaran-mahasiswa button').removeAttr('disabled', false);

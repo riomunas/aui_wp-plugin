@@ -63,6 +63,13 @@ class DataMahasiswaHelper {
         //buat nim
         $nim = DataMahasiswaHelper::generateNim($data);
         
+        $existingMahasiswa = DataMahasiswaHelper::getDataMahasiswaByNim($nim);
+        
+        //kalau sudah ada nim yang sama balikin error sudah ada yang pakai
+        if ($existingMahasiswa != null) {
+            throw new ErrorException("Student already registered");
+        }
+        
         //simpan image
         $upload_dir = wp_upload_dir();
         $uploadDirectory = $upload_dir['basedir'] . '/student-photos/'; // Direktori khusus untuk file sementara
@@ -112,6 +119,9 @@ class DataMahasiswaHelper {
                 'created_at' => $current_date
             )
         );
+        $newMahasiswaId = $auidb->insert_id;
+        $mahasiswa = DataMahasiswaHelper::getDataMahasiswaById($newMahasiswaId);
+        
 
         if ($result === false) {
             // Penyisipan gagal
@@ -119,13 +129,67 @@ class DataMahasiswaHelper {
             wp_die();
         } else {
             //kirim e-mail
+            // Info SMTP dari hostingan Anda
+            $smtp_host = 'smtp.hostinger.co.id';
+            $smtp_port = 587;
+            $smtp_username = 'admin@asean-university.com';
+            $smtp_password = 'BismillaH@176984';
+            $smtp_secure = 'tls';
+        
+            // Set konfigurasi SMTP
+            $smtp_settings = array(
+                'host' => $smtp_host,
+                'port' => $smtp_port,
+                'username' => $smtp_username,
+                'password' => $smtp_password,
+                'timeout' => '30',
+                'ssl' => $smtp_secure,
+            );
+        
+            // Set pengaturan PHPMailer
+            add_action('phpmailer_init', function ($phpmailer) use ($smtp_settings) {
+                $phpmailer->isSMTP();
+                $phpmailer->Host = $smtp_settings['host'];
+                $phpmailer->Port = $smtp_settings['port'];
+                $phpmailer->SMTPAuth = true;
+                $phpmailer->Username = $smtp_settings['username'];
+                $phpmailer->Password = $smtp_settings['password'];
+                $phpmailer->SMTPSecure = $smtp_settings['ssl'];
+            });
+        
+            // Kirim email
+            $to = $data['email'];
+            $subject = '[Asean University International] Welcome E-Mail';
+            $headers = 'From: Admin <admin@asean-university.com>' . "\r\n";
+            $headers .= 'Content-Type: text/html; charset=UTF-8' . "\r\n";
+            
+            $email_template = file_get_contents(plugin_dir_path(__FILE__).'email-template.html');
+            $email_template = str_replace('{{name}}', ucwords($mahasiswa->name), $email_template);
+            $email_template = str_replace('{{program}}', $mahasiswa->program_title, $email_template);
+            $email_template = str_replace('{{biaya}}', number_format($mahasiswa->beasiswa), $email_template);
+            
+            $konfirmasi_subject = '[Asean University International] Konfirmasi E-Mail';
+            $email_konfirmasi_template = file_get_contents(plugin_dir_path(__FILE__).'email-konfirmasi-template.html');
+            $email_konfirmasi_template = str_replace('{{name}}', ucwords($mahasiswa->name), $email_konfirmasi_template);
+            $email_konfirmasi_template = str_replace('{{email}}', $mahasiswa->email, $email_konfirmasi_template);
+            $email_konfirmasi_template = str_replace('{{program}}', $mahasiswa->program_title, $email_konfirmasi_template);
+            $email_konfirmasi_template = str_replace('{{biaya}}', number_format($mahasiswa->beasiswa), $email_konfirmasi_template);
+          
+            
+            if (wp_mail($to, $subject, $email_template, $headers)) {
+                wp_mail('suhendarbw1962@gmail.com', $konfirmasi_subject, $email_konfirmasi_template, $headers);
+                wp_mail('dev.aseanuniversity@gmail.com', $konfirmasi_subject, $email_konfirmasi_template, $headers);
+                wp_send_json_success('Pendaftaran berhasil. Email konfirmasi telah dikirim ke ' . $data['email']);
+            } else {
+                wp_send_json_error('Pendaftaran berhasil, tetapi email konfirmasi gagal dikirim.');
+            }
             
             wp_send_json_success($data);
         }
     }
     
     public static function generateNim($data) {
-            // Menggabungkan ketiga string menjadi satu
+        // Menggabungkan ketiga string menjadi satu
         $combinedString = $data['email'].'-'. $data['date_of_birth'] .'-'. $data['degree'].'-'. $data['faculty'] .'-'. $data['program'];
         
         // Menggunakan hash md5
@@ -133,7 +197,7 @@ class DataMahasiswaHelper {
         
         // Mengkonversi hash ke format numerik
         $uniqueNumber = hexdec(substr($hash, 0, 12)); // Mengambil 12 karakter pertama untuk menghindari overflow
-    
+        
         return $uniqueNumber;
     }
     
@@ -195,18 +259,32 @@ class DataMahasiswaHelper {
         
         return $number_of_graduated;
     }
+    
+    public static function getDataMahasiswaByNim($nim) {
+        global $auidb;
+        
+        $mahasiswa = $auidb->get_row($auidb->prepare("
+            SELECT *, s.name as name, coalesce(s.title_of_graduated, p.name) as degree_title FROM students s 
+            INNER JOIN programs p on p.id = s.program_id
+            WHERE s.nim = %s
+        ", $nim));
+        
+        return $mahasiswa;
+    }
 
     public static function getDataMahasiswaById($id) {
         global $auidb;
         
         $mahasiswa = $auidb->get_row($auidb->prepare("
             SELECT 
-                s.*, p.name as program_title, s.title_of_graduated as degree_title, s.name_sign_of_graduated as degree_sign_name, s.title_sign_of_graduated as degree_sign_title, 
+                s.*, coalesce(s.title_of_graduated, p.name) as program_title, s.title_of_graduated as degree_title, coalesce(s.name_sign_of_graduated, coalesce(d.sign_name, dep.sign_name)) as degree_sign_name, coalesce(d.sign_title, dep.sign_title) as degree_sign_title, 
                 concat(s.city_of_birth, ' - ', c.name, ', ', DATE_FORMAT(date_of_birth, '%M %D, %Y')) birth_info,
-                DATE_FORMAT(s.date_of_graduated, '%M %D, %Y') as date_of_graduated 
+                DATE_FORMAT(s.date_of_graduated, '%M %D, %Y') as date_of_graduated, d.beasiswa as beasiswa, p.department_id as department_id,
+                coalesce(s.path_sign_of_graduated, coalesce(dep.sign_path, d.sign_path)) sign_path, dep.name as faculty
             FROM students s 
             INNER JOIN degrees d on d.id = s.degree_id 
             INNER JOIN programs p on p.id = s.program_id
+            INNER JOIN departments dep on dep.id = p.department_id
             INNER JOIN countries c on c.id = s.country_id
             WHERE s.id = %d
         ", $id));
@@ -235,12 +313,14 @@ class DataMahasiswaHelper {
 
         $mahasiswa = $mydb->get_row($mydb->prepare("
             SELECT 
-                s.*, p.name as program_title, d.title as degree_title, d.sign_name as degree_sign_name, d.sign_title as degree_sign_title, 
+                s.*, coalesce(s.title_of_graduated, p.name) as program_title, d.title as degree_title, coalesce(s.name_sign_of_graduated, coalesce(d.sign_name, dep.sign_name)) as degree_sign_name, coalesce(d.sign_title, dep.sign_title) as degree_sign_title, 
                 concat(s.city_of_birth, ' - ', c.name, ', ', DATE_FORMAT(date_of_birth, '%M %D, %Y')) birth_info,
-                DATE_FORMAT(s.date_of_graduated, '%M %D, %Y') as date_of_graduated 
+                DATE_FORMAT(s.date_of_graduated, '%M %D, %Y') as date_of_graduated, p.department_id as department_id,
+                coalesce(s.path_sign_of_graduated, coalesce(dep.sign_path, d.sign_path)) sign_path, dep.name as faculty
             FROM students s 
             INNER JOIN degrees d on d.id = s.degree_id 
             INNER JOIN programs p on p.id = s.program_id
+            INNER JOIN departments dep on dep.id = p.department_id
             INNER JOIN countries c on c.id = s.country_id
             WHERE (s.nim = %s OR s.email = %s OR s.number_of_graduated)
         ", $keyword, $keyword));
@@ -279,7 +359,168 @@ class DataMahasiswaHelper {
     }
 
     private static function generateCertificate($mahasiswa, $type) {
+        
+        switch ($mahasiswa->degree_id) {
+            case 1: DataMahasiswaHelper::templateS1($mahasiswa, $type); break;
+            default: DataMahasiswaHelper::templateDefault($mahasiswa, $type); break;
+        }
 
+    }
+    
+    private static function templateS1($mahasiswa, $type) {
+        // initiate PDF
+        $pdf = new Fpdi('L','mm','A4');
+        
+        // remove default header/footer
+        $pdf->setPrintHeader(false);
+        $pdf->setPrintFooter(false);
+        
+        //add new page
+        $pdf->AddPage();
+        
+        $template_name = 'template-1.pdf';//download
+        
+        switch ($type) {
+            case 'print': $template_name = 'print-template-1.pdf'; break;
+            case 'image': $template_name = 'water-mark-template-1.pdf'; break;
+        }
+        
+        $path = plugin_dir_path(__FILE__).$template_name;
+        $pdf->setSourceFile($path);
+        $tplIdx = $pdf->importPage(1);
+        
+        $pdf->useTemplate($tplIdx, 0, 0); // Lebar dan tinggi dalam milimeter (215.9x279.4 mm = 8.5x11 inchi)
+    
+        //qrcode
+        $style = array(
+            'border' => false,
+            'padding' => 0,
+            'fgcolor' => array(175, 144, 59),
+            'bgcolor' => false
+        );
+        // QRCODE,H : QR-CODE Best error correction
+        $pdf->write2DBarcode('http://world-uaa.org/certificate/'.$mahasiswa->nim.'/', 'QRCODE,L', 235.37, 65.43, 40, 40, $style, 'N');
+    
+        $degreeId = $mahasiswa->degree_id;
+        $departmentId = $mahasiswa->department_id;
+        if ($degreeId < 3) {
+            $degreeId = 0;
+        } else {
+            $departmentId = 0;
+        }
+        // Path ke gambar
+        // $imagePath = plugin_dir_path(__FILE__).'3_0_sign.png';
+        // $imagePath = plugin_dir_path(__FILE__).$degreeId.'_'.$departmentId.'_sign.png';
+        $imagePath = plugin_dir_path(__FILE__).$mahasiswa->sign_path;
+        $pdf->Image($imagePath, 20, 157.72, 115.53, 24.46, 'PNG');
+    
+        //number certificate
+        $pdf->SetFont('helvetica', 'B', 9, '', true);
+        $pdf->SetTextColor(10, 81, 130);
+        $pdf->SetXY(23.93, 18.77);
+        $pdf->Cell(256, 4.97, 'NUMBER : '.$mahasiswa->number_of_graduated, 0, 1,'L');
+        
+        //set warna font hitam
+        $pdf->SetTextColor(0, 0, 0);
+        
+        //name
+        $pdf->SetFont('times', 'B', 20, '', true);
+        $pdf->SetXY(20, 67.66);
+        $pdf->Cell(256, 7.46, $mahasiswa->name,0, 1,'C');
+        
+        //academic deggre
+        $pdf->SetFont('times', '', 12, '', true);
+        $pdf->SetXY(89.29, 81);
+        $pdf->Cell(187.86, 4.97, $mahasiswa->program_title, 0, 1,'L');
+        
+        //dof
+        $pdf->SetFont('times', '', 12, '', true);
+        $pdf->SetXY(89.29, 93);
+        $pdf->Cell(187.86, 4.97, $mahasiswa->birth_info,0, 1,'L');
+        
+        //student number
+        $pdf->SetFont('times', '', 12, '', true);
+        $pdf->SetXY(89.29, 105);
+        $pdf->Cell(187.86, 4.97, $mahasiswa->nim, 0, 1,'L');
+        
+        //department
+        $pdf->SetFont('times', '', 12, '', true);
+        $pdf->SetXY(89.29, 117);
+        $pdf->Cell(187.86, 4.97, $mahasiswa->faculty, 0, 1,'L');
+        
+        //tanggal 
+        $pdf->SetFont('times', '', 12, '', true);
+        $pdf->SetXY(89.29, 129);
+        $pdf->Cell(187.86, 4.97, $mahasiswa->date_of_graduated, 0, 1,'L');
+        
+        
+        
+        
+        
+        
+        //atas
+        //dekan
+        $pdf->SetFont('times', 'BU', 11);
+        $pdf->SetXY(20, 179.49);
+        $pdf->Cell(115.53, 4.97, $mahasiswa->degree_sign_name, 0, 1,'C');
+        //cancelor
+        $pdf->SetXY(160.94, 179.49);
+        $pdf->Cell(119.3, 4.97, $mahasiswa->sign_certificate_name, 0, 1,'C');
+        
+        //bawah
+        //dekan
+        $pdf->SetFont('times', 'I', 11);
+        $pdf->SetXY(20, 184.47);
+        $pdf->Cell(115.53, 4.97, $mahasiswa->degree_sign_title, 0, 1,'C');
+        //cancelor
+        $pdf->SetXY(160.94, 184.47);
+        $pdf->Cell(119.3, 4.97, $mahasiswa->sign_certificate_title, 0, 1,'C');
+        
+        $pdf->Image('0_11_sign.png', 20, 83.58, 119.3, 119.3, 'PNG');
+
+
+        
+        /*
+        'I': Output ke browser. Hasil PDF akan ditampilkan di browser.
+        'D': Download file. Hasil PDF akan diunduh oleh pengguna sebagai file.
+        'F': Simpan ke file. Hasil PDF akan disimpan ke dalam file di server.
+        'S': Mengembalikan data sebagai string. Hasil PDF akan dikembalikan sebagai string.
+        */
+        
+        $file_name = 'certificate-'.$mahasiswa->nim.'.pdf';
+        switch ($type) {
+            case 'print': $file_name = 'certificate-'.$mahasiswa->nim.'-print.pdf'; break;
+            case 'image': $file_name = 'certificate-'.$mahasiswa->nim.'-marked.pdf'; break;
+        }
+        
+        $upload_dir = wp_upload_dir();
+        $temp_dir = $upload_dir['basedir'] . '/temp-files/'; // Direktori khusus untuk file sementara
+        $file_path = $temp_dir . $file_name; // Path lengkap file
+        
+        $pdf->Output($file_path, 'F');
+        
+        if ($type == 'image') {
+            $imagick = new Imagick();
+            $imagick->readImage($file_path);
+            
+            // Iterasi melalui setiap halaman PDF
+            foreach ($imagick as $index => $page) {
+                // Set format gambar (misalnya JPG)
+                $page->setImageFormat('jpg');
+                
+                // Path untuk gambar output
+                $outputPath = $temp_dir.'certificate-'.$mahasiswa->nim.'.jpg';
+                
+                // Simpan gambar
+                $page->writeImage($outputPath);
+            }
+            
+            $imagick->clear();
+            $imagick->destroy();
+        }
+    }
+    
+    private static function templateDefault($mahasiswa, $type) {
         // initiate PDF
         $pdf = new Fpdi('L','mm','A4');
         
@@ -311,7 +552,20 @@ class DataMahasiswaHelper {
             'bgcolor' => false
         );
         // QRCODE,H : QR-CODE Best error correction
-        $pdf->write2DBarcode('https://asean-university.com/certificate/'.$mahasiswa->nim.'/', 'QRCODE,L', 235.37, 65.43, 40, 40, $style, 'N');
+        $pdf->write2DBarcode('http://world-uaa.org/certificate/'.$mahasiswa->nim.'/', 'QRCODE,L', 235.37, 65.43, 40, 40, $style, 'N');
+    
+        $degreeId = $mahasiswa->degree_id;
+        $departmentId = $mahasiswa->department_id;
+        if ($degreeId < 3) {
+            $degreeId = 0;
+        } else {
+            $departmentId = 0;
+        }
+        // Path ke gambar
+        // $imagePath = plugin_dir_path(__FILE__).'3_0_sign.png';
+        // $imagePath = plugin_dir_path(__FILE__).$degreeId.'_'.$departmentId.'_sign.png';
+        $imagePath = plugin_dir_path(__FILE__).$mahasiswa->sign_path;
+        $pdf->Image($imagePath, 20, 157.72, 115.53, 24.46, 'PNG');
     
         //number certificate
         $pdf->SetFont('helvetica', 'B', 9, '', true);
@@ -324,12 +578,12 @@ class DataMahasiswaHelper {
         
         //name
         $pdf->SetFont('times', 'B', 18, '', true);
-        $pdf->SetXY(20, 83.58);
+        $pdf->SetXY(20, 81.58);
         $pdf->Cell(256, 7.46, $mahasiswa->name,0, 1,'C');
         
         //dof
         $pdf->SetFont('times', 'I', 12, '', true);
-        $pdf->SetXY(20, 89.72);
+        $pdf->SetXY(20, 87.72);
         $pdf->Cell(256, 4.97, $mahasiswa->birth_info,0, 1,'C');
         
         //student number
@@ -340,12 +594,12 @@ class DataMahasiswaHelper {
         //deggre
         $pdf->SetFont('times', 'B', 18, '', true);
         $pdf->SetXY(20, 115.87);
-        $pdf->Cell(256, 4.97, $mahasiswa->degree_title, 0, 1,'C');
-        
-        //faculty
-        $pdf->SetFont('times', 'I', 12, '', true);
-        $pdf->SetXY(20, 123.33);
         $pdf->Cell(256, 4.97, $mahasiswa->program_title, 0, 1,'C');
+        
+        // //program
+        // $pdf->SetFont('times', 'I', 12, '', true);
+        // $pdf->SetXY(20, 123.33);
+        // $pdf->Cell(256, 4.97, $mahasiswa->program_title, 0, 1,'C');
         
         //tanggal 
         $pdf->SetFont('times', '', 12, '', true);
@@ -360,21 +614,24 @@ class DataMahasiswaHelper {
         //atas
         //dekan
         $pdf->SetFont('times', 'BU', 11);
-        $pdf->SetXY(20, 171.08);
+        $pdf->SetXY(20, 179.49);
         $pdf->Cell(115.53, 4.97, $mahasiswa->degree_sign_name, 0, 1,'C');
         //cancelor
-        $pdf->SetXY(160.94, 171.08);
+        $pdf->SetXY(160.94, 179.49);
         $pdf->Cell(119.3, 4.97, $mahasiswa->sign_certificate_name, 0, 1,'C');
         
         //bawah
         //dekan
         $pdf->SetFont('times', 'I', 11);
-        $pdf->SetXY(20, 176.06);
+        $pdf->SetXY(20, 184.47);
         $pdf->Cell(115.53, 4.97, $mahasiswa->degree_sign_title, 0, 1,'C');
         //cancelor
-        $pdf->SetXY(160.94, 176.06);
+        $pdf->SetXY(160.94, 184.47);
         $pdf->Cell(119.3, 4.97, $mahasiswa->sign_certificate_title, 0, 1,'C');
         
+        $pdf->Image('0_11_sign.png', 20, 83.58, 119.3, 119.3, 'PNG');
+
+
         
         /*
         'I': Output ke browser. Hasil PDF akan ditampilkan di browser.

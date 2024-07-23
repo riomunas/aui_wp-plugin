@@ -8,6 +8,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 $search_keyword = $_GET['search_keyword'];
 ?>
 
+<style>
+    @media (max-width: 600px) {
+        .mahasiswa-form-row form {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            gap: 5px;
+            padding:10px;
+        }
+    }
+</style>
 <div class="mahasiswa-form-row">
     <form name="form_search_mahasiswa mahasiswa-form-row" method="get">
         <label for="search_keyword">NIM/E-Mail :</label>

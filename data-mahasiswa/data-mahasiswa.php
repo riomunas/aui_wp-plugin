@@ -13,6 +13,49 @@ add_action( 'wp_enqueue_scripts', 'data_mahasiswa_plugin_enqueue_styles' );
 require_once("data-mahasiswa-helper.php");
 require_once("Data_Mahasiswa_List_Table.php");
 
+
+
+
+/************/
+/* REST API */
+/************/
+// Hook into the REST API initialization action
+add_action('rest_api_init', function () {
+    register_rest_route('asean-university/v1', '/student', array(
+        'methods' => 'GET',
+        'callback' => 'get_student_data',
+        'permission_callback' => '__return_true',
+        'args' => array(
+            'nim' => array(
+                'required' => true,
+                'validate_callback' => function($param, $request, $key) {
+                    return is_string($param) && !empty($param);
+                }
+            ),
+        ),
+    ));
+});
+/**
+ * Callback function to handle the request
+ *
+ * @param WP_REST_Request $request
+ * @return WP_REST_Response
+ */
+function get_student_data(WP_REST_Request $request) {
+    // Get the NIM from the query parameters
+    $nim = $request->get_param('nim');
+    
+    $student = DataMahasiswaHelper::getDataMahasiswaByNim($nim);
+    
+    if (null === $student) {
+        return new WP_REST_Response(array('message' => 'Student not found'), 404);
+    }
+    
+    return new WP_REST_Response($student, 200);
+}
+
+
+
 // Hook auipmt_mahasiswaregistration_ajax_handler function to AJAX hooks
 add_action('wp_ajax_auipmt_mahasiswaregistration', 'auipmt_mahasiswaregistration_handler');
 add_action('wp_ajax_nopriv_auipmt_mahasiswaregistration', 'auipmt_mahasiswaregistration_handler');
@@ -40,7 +83,12 @@ function auipmt_mahasiswaregistration_handler() {
             ];
 
             //save mahasiswa
-            DataMahasiswaHelper::saveDataMahasiswa($data);
+            try {
+                DataMahasiswaHelper::saveDataMahasiswa($data);
+            } catch (Exception $e) {
+                http_response_code(400);
+                wp_send_json_error($e->getMessage());
+            }
         // wp_send_json_success('Pendaftaran berhasil. Email konfirmasi telah dikirim ke '.$name);
     } else {
         wp_send_json_error('Data is not complate');
