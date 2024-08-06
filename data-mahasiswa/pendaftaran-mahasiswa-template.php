@@ -169,6 +169,8 @@ if ( ! defined( 'ABSPATH' ) ) {
         const departments = data.departments;
         const programs = data.programs;
         const countries = data.countries;
+        
+        console.log({programs});
             
         //btnReset
         $('#btnReset').click(() => {
@@ -209,36 +211,58 @@ if ( ! defined( 'ABSPATH' ) ) {
             }
         });
         
+          
+        // degreeDropdown.dropdown({
+        //     action: function(text, value) {
+        //         programDropdown.dropdown('change values', []);
+        //         departmentDropdown.dropdown('clear');
+        //         degreeDropdown.dropdown('set value', value);
+        //         degreeDropdown.dropdown('set selected', value);
+        //         degreeDropdown.dropdown('hide');
+        //     }
+        // });
+        degreeDropdown.dropdown({
+            onChange:function(value, text, $selectedItem) {
+                console.log(value, text, $selectedItem);
+                programDropdown.dropdown('change values', []);
+                departmentDropdown.dropdown('clear');
+            }
+        });
+        
         departmentDropdown.dropdown({
-            action: function(text, value) {
+            onChange:function(value, text, $selectedItem) {
+                console.log(value, text, $selectedItem);
                 const degreeId = degreeDropdown.dropdown('get value');
-                const programDropdown = $('#programDropdown');
-                programDropdown.empty(); // Clear previous options
-                
-                console.log(">> department_id , degree_id ", value, degreeId)
-                // programDropdown.append(`<option value="0">Select Program</option>`);
+                programDropdown.dropdown('change values', []);
+                $('#programDropdown').empty();
                 programs
                     .filter(program => (program.department_id == value && program.degree_id == degreeId))
                     .forEach(program => {
                         programDropdown.append(`<option value="${program.id}">${program.name}</option>`);
                     });
-                
-                departmentDropdown.dropdown('set value', value);
-                departmentDropdown.dropdown('set selected', value);
-                departmentDropdown.dropdown('hide');
-            }
-          });
-          
-          
-        degreeDropdown.dropdown({
-            action: function(text, value) {
-                programDropdown.dropdown('change values', []);
-                departmentDropdown.dropdown('clear');
-                degreeDropdown.dropdown('set value', value);
-                degreeDropdown.dropdown('set selected', value);
-                degreeDropdown.dropdown('hide');
             }
         });
+        
+        // departmentDropdown.dropdown({
+        //     action: function(text, value) {
+        //         const degreeId = degreeDropdown.dropdown('get value');
+        //         const programDropdown = $('#programDropdown');
+        //         programDropdown.dropdown('set value', [])
+                
+        //         console.log(">> department_id , degree_id ", value, degreeId);
+        //         // programDropdown.append(`<option value="0">Select Program</option>`);
+        //         // programs
+        //         programs
+        //             .filter(program => (program.department_id == value && program.degree_id == degreeId))
+        //             .forEach(program => {
+        //                 programDropdown.append(`<option value="${program.id}">${program.name}</option>`);
+        //             });
+                
+        //         departmentDropdown.dropdown('set value', value);
+        //         departmentDropdown.dropdown('set selected', value);
+        //         departmentDropdown.dropdown('hide');
+        //     }
+        //   });
         
         $('#pendaftaran-mahasiswa')
           .form({   

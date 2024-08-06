@@ -1,5 +1,4 @@
 <?php
-
 // Sertakan file WP_List_Table
 if ( ! class_exists( 'WP_List_Table' ) ) {
     require_once ABSPATH . 'wp-admin/includes/class-wp-list-table.php';
@@ -124,4 +123,3 @@ function certificate_table_action_handler() {
     }
 }
 add_action('admin_init', 'certificate_table_action_handler');
-

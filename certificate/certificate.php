@@ -12,7 +12,12 @@ add_action( 'wp_enqueue_scripts', 'certificate_plugin_enqueue_styles' );
 
 require_once("Data_Certificate_List_Table.php");
 
-function sertifikat_page() {
+add_action('init', 'handle_download_sertifikat');
+function handle_download_sertifikat($action) {
+    processCertificate();
+}
+
+function processCertificate() {
     if (isset($_GET['page']) && $_GET['page'] == 'sertifikat') {
         if (isset($_GET['action']) && isset($_GET['id'])) {
             $action = $_GET['action'];
@@ -36,23 +41,27 @@ function sertifikat_page() {
                     break;
             }
             
-            $pdf_file = site_url('/wp-content/uploads/temp-files/'.$file_name);
-            ?>
-            <script>
-                window.onload = function() {
-                var link = document.createElement('a');
-                link.href = "<?= $pdf_file ?>";
-                link.setAttribute('download', '<?= $file_name ?>');
-                link.style.display = 'none';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                window.location.replace('<?= admin_url(); ?>admin.php?page=sertifikat');
-            };
-            </script>
-            <?php
+            // $pdf_file = site_url('/wp-content/uploads/temp-files/'.$file_name);
+            $pdf_file = ABSPATH . 'wp-content/uploads/temp-files/' . $file_name;
+
+            if (file_exists($pdf_file)) {
+                header('Content-Description: File Transfer');
+                header('Content-Type: application/pdf');
+                header('Content-Disposition: attachment; filename="' . basename($pdf_file) . '"');
+                header('Content-Length: ' . filesize($pdf_file));
+                flush(); // Flush system output buffer
+                readfile($pdf_file);
+                exit;
+            } else {
+                // Handle the error when file does not exist
+                wp_die(__('The file does not exist.', 'textdomain'));
+            }
         }
     }
+}
+
+function sertifikat_page() {
+    processCertificate();
 ?>
     <style>
       @media only screen and (max-width: 768px) {
@@ -104,4 +113,3 @@ function sertifikat_page() {
 </div>
 <?php
 }
-?>

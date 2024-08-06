@@ -279,7 +279,8 @@ class DataMahasiswaHelper {
             SELECT 
                 s.*, coalesce(s.title_of_graduated, p.name) as program_title, s.title_of_graduated as degree_title, coalesce(s.name_sign_of_graduated, coalesce(d.sign_name, dep.sign_name)) as degree_sign_name, coalesce(d.sign_title, dep.sign_title) as degree_sign_title, 
                 concat(s.city_of_birth, ' - ', c.name, ', ', DATE_FORMAT(date_of_birth, '%M %D, %Y')) birth_info,
-                DATE_FORMAT(s.date_of_graduated, '%M %D, %Y') as date_of_graduated, d.beasiswa as beasiswa, p.department_id as department_id,
+                concat(s.city_of_birth, ' - ', c.name) birth_prefix,
+                DATE_FORMAT(s.date_of_graduated, '%M %D, %Y') as date_of_graduated, s.date_of_graduated as tgl_lulus, d.beasiswa as beasiswa, p.department_id as department_id,
                 coalesce(s.path_sign_of_graduated, coalesce(dep.sign_path, d.sign_path)) sign_path, dep.name as faculty
             FROM students s 
             INNER JOIN degrees d on d.id = s.degree_id 
@@ -313,9 +314,10 @@ class DataMahasiswaHelper {
 
         $mahasiswa = $mydb->get_row($mydb->prepare("
             SELECT 
-                s.*, coalesce(s.title_of_graduated, p.name) as program_title, d.title as degree_title, coalesce(s.name_sign_of_graduated, coalesce(d.sign_name, dep.sign_name)) as degree_sign_name, coalesce(d.sign_title, dep.sign_title) as degree_sign_title, 
+                s.*, coalesce(s.title_of_graduated, p.name) as program_title, coalesce(s.title_of_graduated, p.name)  as degree_title, coalesce(s.name_sign_of_graduated, coalesce(d.sign_name, dep.sign_name)) as degree_sign_name, coalesce(d.sign_title, dep.sign_title) as degree_sign_title, 
                 concat(s.city_of_birth, ' - ', c.name, ', ', DATE_FORMAT(date_of_birth, '%M %D, %Y')) birth_info,
-                DATE_FORMAT(s.date_of_graduated, '%M %D, %Y') as date_of_graduated, p.department_id as department_id,
+                concat(s.city_of_birth, ' - ', c.name) birth_prefix,
+                DATE_FORMAT(s.date_of_graduated, '%M %D, %Y') as date_of_graduated, s.date_of_graduated as tgl_lulus , p.department_id as department_id,
                 coalesce(s.path_sign_of_graduated, coalesce(dep.sign_path, d.sign_path)) sign_path, dep.name as faculty
             FROM students s 
             INNER JOIN degrees d on d.id = s.degree_id 
@@ -362,10 +364,32 @@ class DataMahasiswaHelper {
         
         switch ($mahasiswa->degree_id) {
             case 1: DataMahasiswaHelper::templateS1($mahasiswa, $type); break;
+            case 3: DataMahasiswaHelper::templateS3($mahasiswa, $type); break;
+            case 4: DataMahasiswaHelper::templateS3($mahasiswa, $type); break;
             default: DataMahasiswaHelper::templateDefault($mahasiswa, $type); break;
         }
 
     }
+    // Fungsi untuk mendapatkan akhiran tanggal
+    private static function getFormatedDate($date) {
+        $dateTime = new DateTime($date);
+        $day = $dateTime->format('j');
+        $suffix = 'th';
+        
+        if (!in_array(($day % 100), [11, 12, 13])) {
+            switch ($day % 10) {
+                case 1:
+                    $suffix =  'st'; break;
+                case 2:
+                    $suffix =  'nd'; break;
+                case 3:
+                    $suffix =  'rd'; break;
+            }
+        }
+        $formattedDate = $dateTime->format("F j") . "<sup style='font-size: 20px;'>$suffix</sup>, " . $dateTime->format("Y");
+        return $formattedDate;
+    }
+    
     
     private static function templateS1($mahasiswa, $type) {
         // initiate PDF
@@ -436,7 +460,8 @@ class DataMahasiswaHelper {
         //dof
         $pdf->SetFont('times', '', 12, '', true);
         $pdf->SetXY(89.29, 93);
-        $pdf->Cell(187.86, 4.97, $mahasiswa->birth_info,0, 1,'L');
+        $dateOfBirth = DataMahasiswaHelper::getFormatedDate($mahasiswa->date_of_birth);
+        $pdf->writeHtml($mahasiswa->birth_prefix.', '.$dateOfBirth, true, false, true, false, '');
         
         //student number
         $pdf->SetFont('times', '', 12, '', true);
@@ -448,13 +473,19 @@ class DataMahasiswaHelper {
         $pdf->SetXY(89.29, 117);
         $pdf->Cell(187.86, 4.97, $mahasiswa->faculty, 0, 1,'L');
         
-        //tanggal 
+        // //tanggal 
+        // $pdf->SetFont('times', '', 12, '', true);
+        // $pdf->SetXY(89.29, 129);
+        // $dateGraduated = DataMahasiswaHelper::getFormatedDate($mahasiswa->tgl_lulus);
+        // $pdf->writeHtml($dateGraduated, true, false, true, false, '');
+        
+        
+        //dog
         $pdf->SetFont('times', '', 12, '', true);
         $pdf->SetXY(89.29, 129);
-        $pdf->Cell(187.86, 4.97, $mahasiswa->date_of_graduated, 0, 1,'L');
-        
-        
-        
+        $dateOfStudyStart = DataMahasiswaHelper::getFormatedDate($mahasiswa->date_of_registered);
+        $dateOfStudyEnd = DataMahasiswaHelper::getFormatedDate($mahasiswa->date_of_graduated);
+        $pdf->writeHtml($dateOfStudyStart.' to '.$dateOfStudyEnd, true, false, true, false, '');
         
         
         
@@ -476,7 +507,7 @@ class DataMahasiswaHelper {
         $pdf->SetXY(160.94, 184.47);
         $pdf->Cell(119.3, 4.97, $mahasiswa->sign_certificate_title, 0, 1,'C');
         
-        $pdf->Image('0_11_sign.png', 20, 83.58, 119.3, 119.3, 'PNG');
+        // $pdf->Image('0_11_sign.png', 20, 83.58, 119.3, 119.3, 'PNG');
 
 
         
@@ -520,6 +551,158 @@ class DataMahasiswaHelper {
         }
     }
     
+    private static function templateS3($mahasiswa, $type) {
+        // initiate PDF
+        $pdf = new Fpdi('L','mm','A4');
+        
+        // remove default header/footer
+        $pdf->setPrintHeader(false);
+        $pdf->setPrintFooter(false);
+        
+        //add new page
+        $pdf->AddPage();
+        
+        $template_name = 'template-3.pdf';//download
+        
+        switch ($type) {
+            case 'print': $template_name = 'print-template-3.pdf'; break;
+            case 'image': $template_name = 'water-mark-template-3.pdf'; break;
+        }
+        
+        $path = plugin_dir_path(__FILE__).$template_name;
+        $pdf->setSourceFile($path);
+        $tplIdx = $pdf->importPage(1);
+        
+        $pdf->useTemplate($tplIdx, 0, 0); // Lebar dan tinggi dalam milimeter (215.9x279.4 mm = 8.5x11 inchi)
+    
+        //qrcode
+        $style = array(
+            'border' => false,
+            'padding' => 0,
+            'fgcolor' => array(175, 144, 59),
+            'bgcolor' => false
+        );
+        // QRCODE,H : QR-CODE Best error correction
+        $pdf->write2DBarcode('http://world-uaa.org/certificate/'.$mahasiswa->nim.'/', 'QRCODE,L', 239.17, 92.5, 25, 25, $style, 'N');
+    
+        $degreeId = $mahasiswa->degree_id;
+        $departmentId = $mahasiswa->department_id;
+        if ($degreeId < 3) {
+            $degreeId = 0;
+        } else {
+            $departmentId = 0;
+        }
+        $imagePath = plugin_dir_path(__FILE__).$mahasiswa->sign_path;
+        
+        if ($type != 'print') {
+            $pdf->Image($imagePath, 20, 157.72, 115.53, 24.46, 'PNG');
+        }
+        
+        //number certificate
+        $pdf->SetFont('helvetica', 'B', 9, '', true);
+        $pdf->SetTextColor(10, 81, 130);
+        $pdf->SetXY(175.62, 21);
+        $pdf->Cell(92.71, 4.97, 'NUMBER : '.$mahasiswa->number_of_graduated, 0, 1,'R');
+        
+        //set warna font hitam
+        $pdf->SetTextColor(0, 0, 0);
+        
+        //name
+        $pdf->SetFont('times', 'B', 24, '', true);
+        $pdf->SetXY(20, 71.48);
+        $pdf->Cell(256, 0, $mahasiswa->name,0, 1,'C');
+        
+        //student number
+        $pdf->SetFont('helvetica', 'B', 12, '', true);
+        $pdf->SetXY(20, 80.37);
+        $pdf->Cell(256, 4.97, $mahasiswa->nim, 0, 1,'C');
+        
+        //dof
+        $pdf->SetFont('times', 'I', 12, '', true);
+        $dateOfBirth = DataMahasiswaHelper::getFormatedDate($mahasiswa->date_of_birth);
+        $pdf->writeHTMLCell('256', 0, '20', '85.87', 'Place and Date of Birth : '.$mahasiswa->birth_prefix.', '.$dateOfBirth, 0, 0, 0, true, 'C');
+        
+        //deggre title
+        $pdf->SetFont('times', 'B', 18, '', true);
+        $pdf->SetXY(20, 109.63);
+        $x = ($pdf->getPageWidth() - 150) / 2;
+        $pdf->MultiCell(150, 0, $mahasiswa->program_title, 1, 'C', 0, 0, $x, '', true);
+        
+        // //dog
+        // $pdf->SetFont('times', 'I', 12, '', true);
+        // $dateOfStudyStart = DataMahasiswaHelper::getFormatedDate($mahasiswa->date_of_registered);
+        // $dateOfStudyEnd = DataMahasiswaHelper::getFormatedDate($mahasiswa->date_of_graduated);
+        // $pageWidth = $pdf->getPageWidth();
+        // $pdf->writeHTMLCell('256', 0, '20', '117.62', 'from '.$dateOfStudyStart.' to '.$dateOfStudyEnd, 0, 0, 0, true, 'C');
+
+        //tanggal
+        $pdf->SetFont('times', '', 12, '', true);
+        $dateOfStudyEnd = DataMahasiswaHelper::getFormatedDate($mahasiswa->date_of_graduated);
+        $pageWidth = $pdf->getPageWidth();
+        $pdf->writeHTMLCell('256', 0, '20', '154.41', 'Malaysia, '.$dateOfStudyEnd, 0, 0, 0, true, 'C');
+
+        //atas
+        //dekan
+        $pdf->SetFont('times', 'BU', 11);
+        $pdf->SetXY(20, 179.49);
+        $pdf->Cell(115.53, 4.97, $mahasiswa->degree_sign_name, 0, 1,'C');
+        //cancelor
+        $pdf->SetXY(160.94, 179.49);
+        $pdf->Cell(119.3, 4.97, $mahasiswa->sign_certificate_name, 0, 1,'C');
+        
+        //bawah
+        //dekan
+        $pdf->SetFont('times', 'I', 11);
+        $pdf->SetXY(20, 184.47);
+        $pdf->Cell(115.53, 4.97, $mahasiswa->degree_sign_title, 0, 1,'C');
+        //cancelor
+        $pdf->SetXY(160.94, 184.47);
+        $pdf->Cell(119.3, 4.97, $mahasiswa->sign_certificate_title, 0, 1,'C');
+        
+        //tanda tangan concelor
+        if ($type != 'print') {
+            $pdf->Image(plugin_dir_path(__FILE__).'/conselor.png', 161, 157.72, 119.3, 0, 'PNG');
+        }
+        /*
+        'I': Output ke browser. Hasil PDF akan ditampilkan di browser.
+        'D': Download file. Hasil PDF akan diunduh oleh pengguna sebagai file.
+        'F': Simpan ke file. Hasil PDF akan disimpan ke dalam file di server.
+        'S': Mengembalikan data sebagai string. Hasil PDF akan dikembalikan sebagai string.
+        */
+        
+        $file_name = 'certificate-'.$mahasiswa->nim.'.pdf';
+        switch ($type) {
+            case 'print': $file_name = 'certificate-'.$mahasiswa->nim.'-print.pdf'; break;
+            case 'image': $file_name = 'certificate-'.$mahasiswa->nim.'-marked.pdf'; break;
+        }
+        
+        $upload_dir = wp_upload_dir();
+        $temp_dir = $upload_dir['basedir'] . '/temp-files/'; // Direktori khusus untuk file sementara
+        $file_path = $temp_dir . $file_name; // Path lengkap file
+        
+        $pdf->Output($file_path, 'F');
+        
+        if ($type == 'image') {
+            $imagick = new Imagick();
+            $imagick->readImage($file_path);
+            
+            // Iterasi melalui setiap halaman PDF
+            foreach ($imagick as $index => $page) {
+                // Set format gambar (misalnya JPG)
+                $page->setImageFormat('jpg');
+                
+                // Path untuk gambar output
+                $outputPath = $temp_dir.'certificate-'.$mahasiswa->nim.'.jpg';
+                
+                // Simpan gambar
+                $page->writeImage($outputPath);
+            }
+            
+            $imagick->clear();
+            $imagick->destroy();
+        }
+    }
+
     private static function templateDefault($mahasiswa, $type) {
         // initiate PDF
         $pdf = new Fpdi('L','mm','A4');
@@ -674,5 +857,4 @@ class DataMahasiswaHelper {
     }
 
 }
-
 ?>
