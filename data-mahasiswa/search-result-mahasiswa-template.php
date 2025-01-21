@@ -31,6 +31,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		margin: 10px;
 		border-radius: 10px;
 		border: 1px solid rgb(64 113 244);
+		background: white;
 	}
 	.image{
 		position: relative;
@@ -102,7 +103,6 @@ if ( ! defined( 'ABSPATH' ) ) {
     																																			   height: 150px;
     																																			   object-fit: contain;
     																																			   border-radius: 50%;
-    																																			   padding: 10px;
     																																			   background: lightgray;
     																																			   margin-left: auto;
     																																			   margin-right: auto;

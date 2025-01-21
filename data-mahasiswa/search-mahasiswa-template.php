@@ -10,7 +10,10 @@ $search_keyword = $_GET['search_keyword'];
 
 <style>
     @media (max-width: 600px) {
-        .mahasiswa-form-row form {
+		.aui-mahasiswa-form-row {
+			margin: 0px 0px 40px 0px !Important;
+		}
+        .aui-mahasiswa-form-row form {
             display: flex;
             flex-direction: column;
             width: 100%;
@@ -18,8 +21,17 @@ $search_keyword = $_GET['search_keyword'];
             padding:10px;
         }
     }
+	.aui-mahasiswa-form-row {
+		margin: 40px 0px 40px 0px;
+		display: flex;
+		flex-direction: row;
+		justify-content: center;
+	}
+	.aui-mahasiswa-form-row form button {
+		font-size: 14px !Important;
+	}
 </style>
-<div class="mahasiswa-form-row">
+<div class="aui-mahasiswa-form-row">
     <form name="form_search_mahasiswa mahasiswa-form-row" method="get">
         <label for="search_keyword">NIM/E-Mail :</label>
         <input type="text" id="search_keyword" name="search_keyword" required placeholder="Enter your NIM / E-Mail"  value=<?= $search_keyword ?>>

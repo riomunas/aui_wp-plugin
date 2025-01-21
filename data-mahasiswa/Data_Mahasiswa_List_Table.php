@@ -27,7 +27,10 @@ class Data_Mahasiswa_List_Table extends WP_List_Table {
             'degree_name'   => 'Degree',
             'program_title'  => 'Program',
             'email'    => 'E-Mail',
-            'status'   => 'Status'
+            'phone'    => 'Phone',
+            'status'   => 'Status',
+			'certificate' => 'L.Certificate',
+			'ktp' => 'Identity',
         );
     }
     
@@ -70,35 +73,171 @@ class Data_Mahasiswa_List_Table extends WP_List_Table {
     public function column_default( $item, $column_name ) {
         switch ( $column_name ) {
             case 'name':
-                $set_to_graduated_link = sprintf('<a href="?page=data-mahasiswa&action=graduated&id=%s">Set To Graduated</a>', $item->id);
+//                 $quick_edit_link = sprintf('<a href="#" class="quick-edit" data-id="%s">Quick Edit</a>', $item->id);
+				$set_to_graduated_link = sprintf('<a href="?page=data-mahasiswa&action=graduated&id=%s">Set To Graduated</a>', $item->id);
                 $set_to_registered_link = sprintf('<a href="?page=data-mahasiswa&action=registered&id=%s">Set To Registered</a>', $item->id);
                 $delete_link = sprintf('<a href="?page=data-mahasiswa&action=delete&id=%s">Delete</a>', $item->id);
-                $actions = [];
-                
-                if ($item->status == 'PENDING') {
-                    $actions = ['set_to_registered_link' => $set_to_registered_link, 'delete' => $delete_link];
+// 				$actions = ['quick_edit' => $quick_edit_link];
+				$actions = [];
+				if ($item->status == 'PENDING') {
+                   $actions['set_to_registered_link'] = $set_to_registered_link;
+                   $actions['delete'] = $delete_link;
                 } else if ($item->status == 'REGISTERED') {
-                   $actions = ['set_to_graduated' => $set_to_graduated_link];
+                   $actions['set_to_graduated'] = $set_to_graduated_link;
+                   $actions['delete'] = $delete_link;
+                } else {
+                   $actions['delete'] = $delete_link;
                 }
+				
                 return sprintf('%1$s %2$s', $item->$column_name, $this->row_actions($actions));
             case 'nim':
             case 'degree_name':
             case 'program_title':
             case 'email':
+            case 'phone':
             case 'status':
                 return $item->$column_name;
+			case 'certificate':
+				if ($item->last_certification_path != null) {
+					// Buat URL ke lokasi gambar
+					$file_url = wp_upload_dir()['baseurl'] . '/student-photos/'.$item->last_certification_path;
+
+					return '<div class="image-cell">
+						<a target="_blank" href="'.esc_url($file_url).'"><i class="wp-menu-image dashicons-before dashicons-admin-media"></i></a>
+                  	</div>';
+				} else {
+					return '-';
+				}
+			case 'ktp':
+				if ($item->ktp_path != null) {
+					// Buat URL ke lokasi gambar
+					$file_url = wp_upload_dir()['baseurl'] . '/student-photos/'.$item->ktp_path;
+
+					return '<div class="image-cell">
+						<a target="_blank" href="'.esc_url($file_url).'"><i class="wp-menu-image dashicons-before dashicons-admin-media"></i></a>
+                  	</div>';
+				} else {
+					return '-';
+				}
             default:
                 return print_r( $item, true ); // Default fallback
         }
     }
 }
 
+function add_quick_edit_script() {
+    ?>
+    <script type="text/javascript">
+        jQuery(document).ready(function($) {
+            // Handle Quick Edit link click
+            $('.quick-edit').on('click', function(e) {
+                e.preventDefault();
+                
+                // Hide any existing inline edits
+                $('.inline-edit-row').hide();
+                
+                // Get row data
+                let row = $(this).closest('tr');
+                let studentId = $(this).data('id');
+                
+                // Insert the quick edit form into the current row
+                let quickEditRow = $('#inline-edit').clone(true);
+                quickEditRow.find('input.name').val(row.find('.column-name').text().trim());
+                quickEditRow.find('input.email').val(row.find('.column-email').text().trim());
+                quickEditRow.find('select.status').val(row.find('.column-status').text().trim());
+                quickEditRow.attr('data-id', studentId);
+                quickEditRow.insertAfter(row).show();
+            });
+            
+            // Handle save action
+            $('.quick-edit-row .save').on('click', function() {
+                let quickEditRow = $(this).closest('.quick-edit-row');
+                let studentId = quickEditRow.data('id');
+                let name = quickEditRow.find('input.name').val();
+                let email = quickEditRow.find('input.email').val();
+                let status = quickEditRow.find('select.status').val();
+                
+                // Send data via AJAX
+                $.ajax({
+                    url: ajaxurl,
+                    type: 'POST',
+                    data: {
+                        action: 'quick_edit_student',
+                        student_id: studentId,
+                        name: name,
+                        email: email,
+                        status: status
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            // Update row with new values
+                            let row = $('tr[data-id="' + studentId + '"]');
+                            row.find('.column-name').text(name);
+                            row.find('.column-email').text(email);
+                            row.find('.column-status').text(status);
+                            
+                            // Remove inline edit form
+                            quickEditRow.hide();
+                        } else {
+                            alert(response.data.message);
+                        }
+                    }
+                });
+            });
+            
+            // Handle cancel action
+            $('.quick-edit-row .cancel').on('click', function() {
+                $(this).closest('.quick-edit-row').hide();
+            });
+        });
+    </script>
+    <?php
+}
+add_action('admin_footer', 'add_quick_edit_script');
+
+
+function add_quick_edit_template() {
+    ?>
+    <div id="inline-edit" style="display:none;" class="inline-edit-row inline-edit-student quick-edit-row">
+        <fieldset class="inline-edit-col-left">
+            <div class="inline-edit-col">
+                <label>
+                    <span class="title">Nama</span>
+                    <span class="input-text-wrap"><input type="text" name="name" class="name" value=""></span>
+                </label>
+                <label>
+                    <span class="title">E-Mail</span>
+                    <span class="input-text-wrap"><input type="email" name="email" class="email" value=""></span>
+                </label>
+                <label>
+                    <span class="title">Status</span>
+                    <span class="input-text-wrap">
+                        <select name="status" class="status">
+                            <option value="PENDING">Pending</option>
+                            <option value="REGISTERED">Registered</option>
+                            <option value="GRADUATED">Graduated</option>
+                        </select>
+                    </span>
+                </label>
+            </div>
+        </fieldset>
+        <div class="inline-edit-save submit">
+            <button type="button" class="button save button-primary">Update</button>
+            <button type="button" class="button cancel">Cancel</button>
+        </div>
+    </div>
+    <?php
+}
+add_action('admin_footer', 'add_quick_edit_template');
+
+
+
 function table_delete_item($id) {
     global $auidb;
     $auidb->update('students', ['deleted_at' => current_time('mysql')], ['id' => $id]);
 }
 
-function table_set_graduated_item($id, $date_of_graduated) {
+function table_set_graduated_item($id, $date_of_graduated, $date_of_registered) {
     global $auidb;
     $mahasiswa = DataMahasiswaHelper::getDataMahasiswaById($id);
     if ($mahasiswa->status == 'GRADUATED') return;
@@ -106,6 +245,7 @@ function table_set_graduated_item($id, $date_of_graduated) {
     $result = DataMahasiswaHelper::generateGraduationNumber($mahasiswa, $date_of_graduated);
     DataMahasiswaHelper::generateCertificateForViewImage($mahasiswa);
     $auidb->update('students', [
+		'date_of_registered' => $date_of_registered,
         'date_of_graduated' => $date_of_graduated,
         'number_of_graduated' => $result->number_of_graduated,
         'status' => 'GRADUATED'
@@ -120,6 +260,17 @@ function table_set_registered_item($id) {
     $auidb->update('students', [
         'status' => 'REGISTERED'
     ], ['id' => $id]);
+	
+	// Kirim email
+	$to = $mahasiswa->email;
+	$subject = '[Asean University International] Payment Thank You E-Mail';
+	$headers = 'From: Admin <admin@asean-university.com>' . "\r\n";
+	$headers .= 'Content-Type: text/html; charset=UTF-8' . "\r\n";
+
+	$email_template = file_get_contents(plugin_dir_path(__FILE__).'email-konfirmasi-pembayaran-template.html');
+	$email_template = str_replace('{{name}}', ucwords($mahasiswa->name), $email_template);
+	$email_template = str_replace('{{link}}', 'https://asean-university.com/search-mahasiswa/?search_keyword='.$mahasiswa->email, $email_template);
+	wp_mail($to, $subject, $email_template, $headers);
 }
 
 function show_form_delete($mahasiswa) {
@@ -137,6 +288,7 @@ function custom_media_table_action_handler() {
         if (isset($_GET['action']) && isset($_GET['id'])) {
             $action = $_GET['action'];
             $id = intval($_GET['id']);
+            $date_of_registered = $_GET['date_of_registered'];
             $date_of_graduated = $_GET['date_of_graduated'];
             
             $mahasiswa = DataMahasiswaHelper::getDataMahasiswaById($id);
@@ -152,7 +304,7 @@ function custom_media_table_action_handler() {
                     echo '<div class="notice notice-success is-dismissible"><p>Data mahsiswa ' . $mahasiswa->name . '('.$mahasiswa->nim.') Deleted.</p></div>';
                     break;
                 case 'confirm-graduated-date':
-                    table_set_graduated_item($id, $date_of_graduated);
+                    table_set_graduated_item($id, $date_of_graduated, $date_of_registered);
                     echo '<div class="notice notice-success is-dismissible"><p>Data mahsiswa ' . $mahasiswa->name . '('.$mahasiswa->nim.') set to Graduated.</p></div>';
                     break;
                 case 'registered':
@@ -163,6 +315,7 @@ function custom_media_table_action_handler() {
                     break;
                 case 'view':
                     // Tambahkan logika untuk melihat item
+                    // show_student_details($mahasiswa);
                     echo '<div class="notice notice-success is-dismissible"><p>Melihat item ' . $id . '.</p></div>';
                     break;
             }

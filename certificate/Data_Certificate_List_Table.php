@@ -73,8 +73,6 @@ class Data_Certificate_List_Table extends WP_List_Table {
             case 'name':
                 $action_download = sprintf('<a href="?page=sertifikat&action=download&id=%s">Download</a>', $item->id);
                 $action_print = sprintf('<a href="?page=sertifikat&action=print&id=%s">Print</a>', $item->id);
-                // $download = '<a href='.esc_url($file_url).' download>Download</a>';
-                // $download_for_print = '<a href='.esc_url($print_file_url).' download>Download For Print</a>';
                 $actions = ['action_download' => $action_download, 'action_print' => $action_print];
                 
                 return sprintf('%1$s %2$s', $item->$column_name, $this->row_actions($actions));

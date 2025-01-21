@@ -1,0 +1,64 @@
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background-color: #f4f4f4;
+        margin: 0;
+        padding: 0;
+    }
+    .container {
+        background-color: #ffffff;
+        margin: 20px auto;
+        padding: 20px;
+        max-width: 600px;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+    .header {
+        text-align: center;
+        background-color: #3182ce;
+        color: #ffffff;
+        padding: 10px 0;
+        border-radius: 10px 10px 0 0;
+    }
+    .content {
+        margin: 20px 0;
+        text-align: left;
+    }
+    .footer {
+        text-align: center;
+        color: #777777;
+        font-size: 12px;
+        margin-top: 20px;
+    }
+    .btn {
+        background-color: #4CAF50;
+        color: white;
+        padding: 10px 20px;
+        text-decoration: none;
+        border-radius: 5px;
+        display: inline-block;
+    }
+    .btn:hover {
+        background-color: #45a049;
+    }
+</style>
+<div class="container">
+    <div class="header">
+        <h1>Payment Confirmation</h1>
+    </div>
+    <div class="content">
+        <p>Hello, {{name}}</p>
+        <p>Thanks, We have received your payment.</p>
+        <p>Here is the link to show your student account status:</p>
+        <ul>
+            <a href="{{link}}">click here</a>
+        </ul>
+        <p>If you have any questions or concerns, feel free to contact us.</p>
+        <p>Thank you,</p>
+    </div>
+        <p><strong>admin@asean-university.com</strong></p>
+    </div>
+    <div class="footer">
+        <p>&copy; 2024 Asaen University International.</p>
+    </div>
+</div>

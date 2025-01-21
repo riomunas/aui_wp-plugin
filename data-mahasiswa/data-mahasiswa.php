@@ -79,8 +79,10 @@ function auipmt_mahasiswaregistration_handler() {
                 'phone' => sanitize_text_field($_POST['phone']),
                 'photo' => $_FILES['selfie'],
                 'ktp' => $_FILES['identity'],
+				'last_certification' => $_FILES['last_certification'],
                 'address' => sanitize_text_field($_POST['address'])
             ];
+	
 
             //save mahasiswa
             try {
@@ -156,7 +158,8 @@ function data_mahasiswa_page() {
                 <h1 class="wp-heading-inline">Graduated Details</h1>
                 <p>Set Graduated Date for <?= $mahasiswa->name ?> (<?= $mahasiswa->nim ?>).</p>
                 <form method="get">
-                    <input type="date" name="date_of_graduated" required />
+                    Register Date : <input type="date" name="date_of_registered" value="<?= $mahasiswa->date_of_registered ?>" required />
+                    Graduate Date : <input type="date" name="date_of_graduated" required />
                     <input type="hidden" name="page" value="data-mahasiswa" />
                     <input type="hidden" name="id" value="<?php echo esc_attr($id); ?>">
                     <button type="submit" name="action" value="confirm-graduated-date" class="button button-primary">Yes, Set as Graduated</button>

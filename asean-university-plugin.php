@@ -60,7 +60,8 @@ function aui_app_plugin_menu() {
         $capability,
         'aui-app-menu',
         'aui_app_menu_page',
-        'dashicons-building',
+//         'dashicons-building',
+		'http://asean-university.com/wp-content/uploads/2024/08/menu-asean-university-international.png',
         2
     );
 

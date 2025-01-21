@@ -76,7 +76,7 @@ if ( ! defined( 'ABSPATH' ) ) {
         </div>
         <div class="field required">
             <label>Program</label>
-            <select id="programDropdown" name="program" class="ui dropdown">
+            <select id="programDropdown" name="program" class="ui dropdown search">
                 <option value="">Select Program</option>
                 <!-- Options will be populated based on selected Fakultas -->
             </select>
@@ -92,7 +92,11 @@ if ( ! defined( 'ABSPATH' ) ) {
                 <input type="text" name="phone" placeholder="Nomor HP">
             </div>
         </div>
-        
+		<div class="field required">
+			<label>Last Certification</label>
+			<input id="last_certification" type="file" name="last_certification" accept="image/*" onchange="previewFile(this, 'last-certification-preview')">
+			<img id="last-certification-preview" class="hidden ui image" style="max-width: 150px; margin:10px 0px">
+		</div>
         <div class="two fields">
             <div class="field required">
                 <label>Selfie</label>
@@ -169,14 +173,16 @@ if ( ! defined( 'ABSPATH' ) ) {
         const departments = data.departments;
         const programs = data.programs;
         const countries = data.countries;
-        
-        console.log({programs});
+		
+		const urlParams = new URLSearchParams(window.location.search);
+		const selectedDegree = urlParams.get('degree'); // Mendapatkan nilai dari parameter 'degree'
             
         //btnReset
         $('#btnReset').click(() => {
             $('#pendaftaran-mahasiswa').form('clear');
             $('#foto-preview').addClass('hidden');
             $('#ktp-preview').addClass('hidden');
+            $('#last-certification-preview').addClass('hidden');
         })
             
         //country
@@ -192,6 +198,11 @@ if ( ! defined( 'ABSPATH' ) ) {
         degrees.forEach(degree => {
             degreeDropdown.append(`<option value="${degree.id}">${degree.kode}</option>`);
         });
+		
+		console.log(">> selected --> ", selectedDegree);
+		if (selectedDegree) {
+			$('#degreeDropdown').dropdown('set selected', selectedDegree);
+		}
     
         //department
         const departmentDropdown = $('#departmentDropdown');
@@ -201,7 +212,9 @@ if ( ! defined( 'ABSPATH' ) ) {
         });
         
         const programDropdown = $('#programDropdown');
-        programDropdown.dropdown();
+        programDropdown.dropdown({
+			fullTextSearch:true
+		});
         
         countryDropdown.dropdown({
            action: function(text, value) {
@@ -230,6 +243,7 @@ if ( ! defined( 'ABSPATH' ) ) {
         });
         
         departmentDropdown.dropdown({
+			fullTextSearch:true,
             onChange:function(value, text, $selectedItem) {
                 console.log(value, text, $selectedItem);
                 const degreeId = degreeDropdown.dropdown('get value');
@@ -276,6 +290,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                 program : 'empty',
                 email : 'empty',
                 phone : 'empty',
+				last_certification: 'empty',
                 selfie : 'empty',
                 identity : 'empty',
                 address : 'empty'
@@ -313,6 +328,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                     $('#pendaftaran-mahasiswa').form('clear');
                     $('#foto-preview').addClass('hidden');
                     $('#ktp-preview').addClass('hidden');
+                    $('#last-certification-preview').addClass('hidden');
                     $('.dropdown').removeClass('disabled')
                   
                       // Handle success
