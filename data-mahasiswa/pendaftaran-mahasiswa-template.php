@@ -92,7 +92,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                 <input type="text" name="phone" placeholder="Nomor HP">
             </div>
         </div>
-		<div class="field required">
+		<div id="block_last_certification" class="field required">
 			<label>Last Certification</label>
 			<input id="last_certification" type="file" name="last_certification" accept="image/*" onchange="previewFile(this, 'last-certification-preview')">
 			<img id="last-certification-preview" class="hidden ui image" style="max-width: 150px; margin:10px 0px">
@@ -199,7 +199,6 @@ if ( ! defined( 'ABSPATH' ) ) {
             degreeDropdown.append(`<option value="${degree.id}">${degree.kode}</option>`);
         });
 		
-		console.log(">> selected --> ", selectedDegree);
 		if (selectedDegree) {
 			$('#degreeDropdown').dropdown('set selected', selectedDegree);
 		}
@@ -239,6 +238,13 @@ if ( ! defined( 'ABSPATH' ) ) {
                 console.log(value, text, $selectedItem);
                 programDropdown.dropdown('change values', []);
                 departmentDropdown.dropdown('clear');
+                if (value == 6) {
+                    $('#block_last_certification').hide();
+                    $('#last_certification').prop('disabled', true);
+                } else {
+                    $('#block_last_certification').show();
+                    $('#last_certification').prop('disabled', false);
+                }
             }
         });
         

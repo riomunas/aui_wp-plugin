@@ -805,22 +805,22 @@ class DataMahasiswaHelper {
         //listening
         $pdf->SetFont('helvetica', 'B', 12, '', true);
         $pdf->SetXY(8, 160);
-        $pdf->Cell(97, 0, $mahasiswa->scores[1], 0, 1,'R');
+        $pdf->Cell(97, 0, isset($mahasiswa->scores[1]) ? $mahasiswa->scores[1] : '', 0, 1,'R');
 
         //structure
         $pdf->SetFont('helvetica', 'B', 12, '', true);
         $pdf->SetXY(8, 167);
-        $pdf->Cell(97, 0, $mahasiswa->scores[2], 0, 1,'R');
+        $pdf->Cell(97, 0, isset($mahasiswa->scores[2]) ? $mahasiswa->scores[2] : '', 0, 1,'R');
 
         //reading
         $pdf->SetFont('helvetica', 'B', 12, '', true);
         $pdf->SetXY(8, 174);
-        $pdf->Cell(97, 0, $mahasiswa->scores[3], 0, 1,'R');
+        $pdf->Cell(97, 0, isset($mahasiswa->scores[3]) ? $mahasiswa->scores[3] : '', 0, 1,'R');
 
         //total
         $pdf->SetFont('helvetica', 'B', 12, '', true);
         $pdf->SetXY(8, 181);
-        $pdf->Cell(97, 0, $mahasiswa->scores[4], 0, 1,'R');
+        $pdf->Cell(97, 0, isset($mahasiswa->scores[4]) ? $mahasiswa->scores[4] : '', 0, 1,'R');
         
         //tanggal
         $pdf->SetFont('times', '', 12, '', true);
