@@ -44,9 +44,6 @@ class Data_Mahasiswa_List_Table extends WP_List_Table {
         $offset = ( $current_page - 1 ) * $per_page;
         
         $search = isset( $_GET['search'] ) ? sanitize_text_field( $_GET['search'] ) : '';
-        
-        print_r($searh);
-
     
         // Query data dari database dengan LIMIT dan OFFSET
 
@@ -237,7 +234,7 @@ function table_delete_item($id) {
     $auidb->update('students', ['deleted_at' => current_time('mysql')], ['id' => $id]);
 }
 
-function table_set_graduated_item($id, $date_of_graduated, $date_of_registered) {
+function table_set_graduated_item($id, $date_of_graduated, $date_of_registered, $listening_comprehension, $structure_written_expression, $reading_comprehension, $total) {
     global $auidb;
     $mahasiswa = DataMahasiswaHelper::getDataMahasiswaById($id);
     if ($mahasiswa->status == 'GRADUATED') return;
@@ -250,6 +247,22 @@ function table_set_graduated_item($id, $date_of_graduated, $date_of_registered) 
         'number_of_graduated' => $result->number_of_graduated,
         'status' => 'GRADUATED'
     ], ['id' => $id]);
+
+    $scores = [
+        ['scores_settings_id' => 1, 'value' => $listening_comprehension],
+        ['scores_settings_id' => 2, 'value' => $structure_written_expression],
+        ['scores_settings_id' => 3, 'value' => $reading_comprehension],
+        ['scores_settings_id' => 4, 'value' => $total]
+    ];
+
+    foreach ($scores as $score) {
+        $auidb->insert('scores', [
+            'student_id' => $id,
+            'scores_settings_id' => $score['scores_settings_id'],
+            'value' => $score['value'],
+            'created_at' => current_time('mysql') // Use current_time with GMT offset
+        ]);
+    }
 }
 
 function table_set_registered_item($id) {
@@ -288,9 +301,12 @@ function custom_media_table_action_handler() {
         if (isset($_GET['action']) && isset($_GET['id'])) {
             $action = $_GET['action'];
             $id = intval($_GET['id']);
-            $date_of_registered = $_GET['date_of_registered'];
-            $date_of_graduated = $_GET['date_of_graduated'];
-            
+            $date_of_registered = isset($_GET['date_of_registered']) ? $_GET['date_of_registered'] : null;
+            $date_of_graduated = isset($_GET['date_of_graduated']) ? $_GET['date_of_graduated'] : null;
+            $listening_comprehension = isset($_GET['listening_comprehension']) ? $_GET['listening_comprehension'] : null;
+            $structure_written_expression  = isset($_GET['structure_written_expression']) ? $_GET['structure_written_expression'] : null;
+            $reading_comprehension = isset($_GET['reading_comprehension']) ? $_GET['reading_comprehension'] : null;
+            $total = isset($_GET['total']) ? $_GET['total'] : null;
             $mahasiswa = DataMahasiswaHelper::getDataMahasiswaById($id);
 
             switch ($action) {
@@ -304,7 +320,7 @@ function custom_media_table_action_handler() {
                     echo '<div class="notice notice-success is-dismissible"><p>Data mahsiswa ' . $mahasiswa->name . '('.$mahasiswa->nim.') Deleted.</p></div>';
                     break;
                 case 'confirm-graduated-date':
-                    table_set_graduated_item($id, $date_of_graduated, $date_of_registered);
+                    table_set_graduated_item($id, $date_of_graduated, $date_of_registered, $listening_comprehension, $structure_written_expression, $reading_comprehension, $total);
                     echo '<div class="notice notice-success is-dismissible"><p>Data mahsiswa ' . $mahasiswa->name . '('.$mahasiswa->nim.') set to Graduated.</p></div>';
                     break;
                 case 'registered':

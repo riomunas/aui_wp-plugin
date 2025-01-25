@@ -4,15 +4,23 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit; // Exit if accessed directly
 }
 
-// Enqueue Styles and Scripts
 function data_mahasiswa_plugin_enqueue_styles() {
-    wp_enqueue_style( 'data-mahasiswa-plugin-styles', plugin_dir_url( __FILE__ ) . 'style.css' );
+    if (isset($_GET['page']) && $_GET['page'] == 'data-mahasiswa') {
+        wp_enqueue_style( 'data-mahasiswa-plugin-styles', plugin_dir_url( __FILE__ ) . 'style.css' );
+    }
 }
-add_action( 'wp_enqueue_scripts', 'data_mahasiswa_plugin_enqueue_styles' );
+add_action( 'admin_enqueue_scripts', 'data_mahasiswa_plugin_enqueue_styles' );
+
+function data_mahasiswa_plugin_enqueue_scripts() {
+    if (isset($_GET['page']) && $_GET['page'] == 'data-mahasiswa') {
+        wp_enqueue_script( 'data-mahasiswa-plugin-scripts', plugin_dir_url( __FILE__ ) . 'data-mahasiswa.js', array(), false, true );
+    }
+}
+add_action( 'admin_enqueue_scripts', 'data_mahasiswa_plugin_enqueue_scripts' );
+
 
 require_once("data-mahasiswa-helper.php");
 require_once("Data_Mahasiswa_List_Table.php");
-
 
 
 
@@ -153,26 +161,65 @@ function data_mahasiswa_page() {
             <?php
             return; // Menghentikan eksekusi untuk menampilkan form konfirmasi
         } else if ($_GET['action'] == 'graduated') {
-            ?>
-            <div class="wrap">
-                <h1 class="wp-heading-inline">Graduated Details</h1>
-                <p>Set Graduated Date for <?= $mahasiswa->name ?> (<?= $mahasiswa->nim ?>).</p>
-                <form method="get">
-                    Register Date : <input type="date" name="date_of_registered" value="<?= $mahasiswa->date_of_registered ?>" required />
-                    Graduate Date : <input type="date" name="date_of_graduated" required />
-                    <input type="hidden" name="page" value="data-mahasiswa" />
-                    <input type="hidden" name="id" value="<?php echo esc_attr($id); ?>">
-                    <button type="submit" name="action" value="confirm-graduated-date" class="button button-primary">Yes, Set as Graduated</button>
-                    <a href="?page=data-mahasiswa" class="button">Cancel</a>
-                </form>
-            </div>
+            // print_r($mahasiswa);
+
+            if($mahasiswa->degree_id == 6 && $mahasiswa->department_id == 81) { ?>
+                <div class="wrap">
+                    <h1 class="wp-heading-inline">Graduated Details</h1>
+                    <p>Set Graduated Date for <?= $mahasiswa->name ?> (<?= $mahasiswa->nim ?>).</p>
+                    <form method="get">
+                        <div class="form-group">
+                            <label for="date_of_registered">Register Date:</label>
+                            <input type="date" name="date_of_registered" id="date_of_registered" value="<?= $mahasiswa->date_of_registered ?>" required />
+                        </div>
+                        <div class="form-group">
+                            <label for="date_of_graduated">Graduate Date:</label>
+                            <input type="date" name="date_of_graduated" id="date_of_graduated" required />
+                        </div>
+                        <div class="form-group">
+                            <label for="listening_comprehension">Listening Comprehension:</label>
+                            <input type="number" name="listening_comprehension" id="listening_comprehension" required />
+                        </div>
+                        <div class="form-group">
+                            <label for="structure_written_expression">Structure And Written Expression:</label>
+                            <input type="number" name="structure_written_expression" id="structure_written_expression" required />
+                        </div>
+                        <div class="form-group">
+                            <label for="reading_comprehension">Reading Comprehension:</label>
+                            <input type="number" name="reading_comprehension" id="reading_comprehension" required />
+                        </div>
+                        <div class="form-group">
+                            <label for="total">Total:</label>
+                            <input type="number" name="total" id="total" readonly />
+                        </div>
+                        <input type="hidden" name="page" value="data-mahasiswa" />
+                        <input type="hidden" name="id" value="<?php echo esc_attr($id); ?>" />
+                        <div class="form-actions">
+                            <button type="submit" name="action" value="confirm-graduated-date" class="button button-primary">Yes, Set as Graduated</button>
+                            <a href="?page=data-mahasiswa" class="button">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            <?php } else { ?>
+                <div class="wrap">
+                    <h1 class="wp-heading-inline">Graduated Details</h1>
+                    <p>Set Graduated Date for <?= $mahasiswa->name ?> (<?= $mahasiswa->nim ?>).</p>
+                    <form method="get">
+                        Register Date : <input type="date" name="date_of_registered" value="<?= $mahasiswa->date_of_registered ?>" required />
+                        Graduate Date : <input type="date" name="date_of_graduated" required />
+                        <input type="hidden" name="page" value="data-mahasiswa" />
+                        <input type="hidden" name="id" value="<?php echo esc_attr($id); ?>">
+                        <button type="submit" name="action" value="confirm-graduated-date" class="button button-primary">Yes, Set as Graduated</button>
+                        <a href="?page=data-mahasiswa" class="button">Cancel</a>
+                    </form>
+                </div>
+            <?php } ?>
             <?php
             return;
         }
     }
-
 ?>
-    <style>
+    <!-- <style>
       @media only screen and (max-width: 768px) {
           form {
               flex-wrap: wrap;
@@ -190,7 +237,7 @@ function data_mahasiswa_page() {
 
       /* Tata letak untuk layar berukuran besar (misalnya, desktop) */
       @media only screen and (min-width: 769px) {
-          input[type="text"]#search {
+        input[type="text"]#search {
               width: 350px; /* Mengatur lebar input menjadi 350px */
           }
 
@@ -198,7 +245,7 @@ function data_mahasiswa_page() {
               width: 100px; /* Mengatur lebar tombol pencarian menjadi 100px */
           }
       }
-</style>
+</style> -->
 
 <div class="wrap">
     
@@ -222,6 +269,3 @@ function data_mahasiswa_page() {
 </div>
 <?php
 }
-?>
-
-

@@ -47,4 +47,3 @@ $search_keyword = $_GET['search_keyword'];
 
 <?php 
 do_action('handle_form_search_mahasiswa', $search_keyword);
-?>

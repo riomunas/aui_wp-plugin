@@ -9,4 +9,3 @@ function beasiswa_page() {
     echo '<h1>Beasiswa</h1>';
     echo '<p>Ini adalah halaman Beasiswa.</p>';
 }
-?>

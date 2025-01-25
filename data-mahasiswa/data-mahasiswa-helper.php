@@ -139,11 +139,11 @@ class DataMahasiswaHelper {
         } else {
             //kirim e-mail
             // Info SMTP dari hostingan Anda
-            $smtp_host = 'smtp.hostinger.co.id';
-            $smtp_port = 587;
-            $smtp_username = 'admin@asean-university.com';
-            $smtp_password = 'BismillaH@176984';
-            $smtp_secure = 'tls';
+            $smtp_host = SMTP_HOST;
+            $smtp_port = SMTP_PORT;
+            $smtp_username = SMTP_USERNAME;
+            $smtp_password = SMTP_PASSWORD;
+            $smtp_secure = SMTP_SECURE;
         
             // Set konfigurasi SMTP
             $smtp_settings = array(
@@ -169,7 +169,7 @@ class DataMahasiswaHelper {
             // Kirim email
             $to = $data['email'];
             $subject = '[Asean University International] Welcome E-Mail';
-            $headers = 'From: Admin <admin@asean-university.com>' . "\r\n";
+            $headers = 'From: Admin <'.SMTP_USERNAME.'>' . "\r\n";
             $headers .= 'Content-Type: text/html; charset=UTF-8' . "\r\n";
             
             $email_template = file_get_contents(plugin_dir_path(__FILE__).'email-template.html');
@@ -187,8 +187,8 @@ class DataMahasiswaHelper {
           
             
             if (wp_mail($to, $subject, $email_template, $headers)) {
-                wp_mail('suhendarbw1962@gmail.com', $konfirmasi_subject, $email_konfirmasi_template, $headers);
-                wp_mail('dev.aseanuniversity@gmail.com', $konfirmasi_subject, $email_konfirmasi_template, $headers);
+                wp_mail(SMTP_FOWARD_EMAIL_1, $konfirmasi_subject, $email_konfirmasi_template, $headers);
+                wp_mail(SMTP_FOWARD_EMAIL_2, $konfirmasi_subject, $email_konfirmasi_template, $headers);
                 wp_send_json_success('Pendaftaran berhasil. Email konfirmasi telah dikirim ke ' . $data['email']);
             } else {
                 wp_send_json_error('Pendaftaran berhasil, tetapi email konfirmasi gagal dikirim.');
@@ -277,6 +277,7 @@ class DataMahasiswaHelper {
             SELECT *, s.name as name, coalesce(s.title_of_graduated, p.name) as degree_title FROM students s 
             INNER JOIN programs p on p.id = s.program_id
             WHERE s.nim = %s
+            AND s.deleted_at is null
         ", $nim));
         
         return $mahasiswa;
@@ -316,6 +317,24 @@ class DataMahasiswaHelper {
             "));
             $mahasiswa->sign_certificate_title = $setting_title->keterangan;
         }
+
+        // SELECT s.scores_settings_id, s.value
+        // FROM `scores` s
+        // INNER JOIN `scores_settings` ss on s.scores_settings_id = ss.id
+        // where s.student_id = 433
+        // LIMIT 50
+
+        $scores = $auidb->get_results($auidb->prepare("
+            SELECT scores_settings_id, value
+            FROM scores
+            WHERE student_id = %d
+        ", $id));
+
+        $mahasiswa->scores = array();
+        foreach ($scores as $score) {
+            $mahasiswa->scores[$score->scores_settings_id] = $score->value;
+        }        
+
         return $mahasiswa;
     }
     
@@ -377,6 +396,11 @@ class DataMahasiswaHelper {
             case 3: DataMahasiswaHelper::templateS3($mahasiswa, $type); break;
             case 4: DataMahasiswaHelper::templateS4($mahasiswa, $type); break;
             case 5: DataMahasiswaHelper::templateS4($mahasiswa, $type); break;
+            case 6: 
+                if ($mahasiswa->department_id == 81) {
+                    DataMahasiswaHelper::templateTOEFL($mahasiswa, $type);
+                }
+                break;
             default: DataMahasiswaHelper::templateDefault($mahasiswa, $type); break;
         }
 
@@ -675,6 +699,154 @@ class DataMahasiswaHelper {
         if ($type != 'print') {
             $pdf->Image(plugin_dir_path(__FILE__).'/conselor.png', 161, 157.72, 119.3, 0, 'PNG');
         }
+        /*
+        'I': Output ke browser. Hasil PDF akan ditampilkan di browser.
+        'D': Download file. Hasil PDF akan diunduh oleh pengguna sebagai file.
+        'F': Simpan ke file. Hasil PDF akan disimpan ke dalam file di server.
+        'S': Mengembalikan data sebagai string. Hasil PDF akan dikembalikan sebagai string.
+        */
+        
+        $file_name = 'certificate-'.$mahasiswa->nim.'.pdf';
+        switch ($type) {
+            case 'print': $file_name = 'certificate-'.$mahasiswa->nim.'-print.pdf'; break;
+            case 'image': $file_name = 'certificate-'.$mahasiswa->nim.'-marked.pdf'; break;
+        }
+        
+        $upload_dir = wp_upload_dir();
+        $temp_dir = $upload_dir['basedir'] . '/temp-files/'; // Direktori khusus untuk file sementara
+        $file_path = $temp_dir . $file_name; // Path lengkap file
+        
+        $pdf->Output($file_path, 'F');
+        
+        if ($type == 'image') {
+            $imagick = new Imagick();
+            $imagick->readImage($file_path);
+            
+            // Iterasi melalui setiap halaman PDF
+            foreach ($imagick as $index => $page) {
+                // Set format gambar (misalnya JPG)
+                $page->setImageFormat('jpg');
+                
+                // Path untuk gambar output
+                $outputPath = $temp_dir.'certificate-'.$mahasiswa->nim.'.jpg';
+                
+                // Simpan gambar
+                $page->writeImage($outputPath);
+            }
+            
+            $imagick->clear();
+            $imagick->destroy();
+        }
+    }
+
+    private static function templateTOEFL($mahasiswa, $type) {
+        // initiate PDF
+        $pdf = new Fpdi('L','mm','A4');
+        
+        // remove default header/footer
+        $pdf->setPrintHeader(false);
+        $pdf->setPrintFooter(false);
+        
+        //add new page
+        $pdf->AddPage();
+        
+        $template_name = 'template-TOEFL.pdf';//download
+        
+        switch ($type) {
+            case 'print': $template_name = 'print-template-TOEFL.pdf'; break;
+            case 'image': $template_name = 'water-mark-template-TOEFL.pdf'; break;
+        }
+        
+        $path = plugin_dir_path(__FILE__).$template_name;
+        $pdf->setSourceFile($path);
+        $tplIdx = $pdf->importPage(1);
+        
+        $pdf->useTemplate($tplIdx, 0, 0); // Lebar dan tinggi dalam milimeter (215.9x279.4 mm = 8.5x11 inchi)
+    
+        //qrcode
+        $style = array(
+            'border' => false,
+            'padding' => 0,
+            'fgcolor' => array(175, 144, 59),
+            'bgcolor' => false
+        );
+        // QRCODE,H : QR-CODE Best error correction
+        // $pdf->write2DBarcode('https://asean-university.com/search-mahasiswa/?search_keyword='.$mahasiswa->nim, 'QRCODE,L', 23.93, 23.93, 20, 20, $style, 'N');
+    
+        $degreeId = $mahasiswa->degree_id;
+        $departmentId = $mahasiswa->department_id;
+        if ($degreeId < 3) {
+            $degreeId = 0;
+        } else {
+            $departmentId = 0;
+        }
+        
+        //name
+        $pdf->SetTextColor(0, 0, 0);
+        $pdf->SetFont('times', 'B', 20, '', true);
+        $pdf->SetXY(0, 96);
+        $pdf->Cell(297, 0, $mahasiswa->name,0, 1,'C');
+
+        //dof
+        $pdf->SetFont('times', 'I', 12, '', true);
+        $dateOfBirth = DataMahasiswaHelper::getFormatedDate($mahasiswa->date_of_birth);
+        $pdf->writeHTMLCell('297', 0, '0', '105', '('.$dateOfBirth.' in '.$mahasiswa->birth_prefix.')', 0, 0, 0, true, 'C');
+
+        //number certificate
+        $pdf->SetFont('helvetica', 'B', 17, '', true);
+        $pdf->SetTextColor(10, 81, 130);
+        $pdf->SetXY(0, 121);
+        $pdf->Cell(297, 0, $mahasiswa->number_of_graduated, 0, 1,'C');
+        
+
+        //set warna font hitam
+        $pdf->SetTextColor(0, 0, 0);
+        
+        //listening
+        $pdf->SetFont('helvetica', 'B', 12, '', true);
+        $pdf->SetXY(8, 160);
+        $pdf->Cell(97, 0, $mahasiswa->scores[1], 0, 1,'R');
+
+        //structure
+        $pdf->SetFont('helvetica', 'B', 12, '', true);
+        $pdf->SetXY(8, 167);
+        $pdf->Cell(97, 0, $mahasiswa->scores[2], 0, 1,'R');
+
+        //reading
+        $pdf->SetFont('helvetica', 'B', 12, '', true);
+        $pdf->SetXY(8, 174);
+        $pdf->Cell(97, 0, $mahasiswa->scores[3], 0, 1,'R');
+
+        //total
+        $pdf->SetFont('helvetica', 'B', 12, '', true);
+        $pdf->SetXY(8, 181);
+        $pdf->Cell(97, 0, $mahasiswa->scores[4], 0, 1,'R');
+        
+        //tanggal
+        $pdf->SetFont('times', '', 12, '', true);
+        $dateOfStudyEnd = DataMahasiswaHelper::getFormatedDate($mahasiswa->date_of_graduated);
+        $pageWidth = $pdf->getPageWidth();
+        $pdf->writeHTMLCell('119.3', 0, '160.94', '154.41', 'Malaysia, '.$dateOfStudyEnd, 0, 0, 0, true, 'C');
+
+        //atas
+        //dekan
+        $pdf->SetFont('times', 'BU', 11);
+        $pdf->SetXY(160.94, 179.49);
+        $pdf->Cell(119.3, 4.97, $mahasiswa->degree_sign_name, 0, 1,'C');
+        
+        //bawah
+        //dekan
+        $pdf->SetFont('times', 'I', 11);
+        $pdf->SetXY(160.94, 184.47);
+        $pdf->Cell(119.3, 4.97, $mahasiswa->degree_sign_title, 0, 1,'C');
+        
+
+        //tanda tangan
+        $imagePath = plugin_dir_path(__FILE__).$mahasiswa->sign_path;
+        // if ($type != 'print') {
+            $pdf->Image($imagePath,  161, 157.72, 119.3, 0, 'PNG');
+        // }
+
         /*
         'I': Output ke browser. Hasil PDF akan ditampilkan di browser.
         'D': Download file. Hasil PDF akan diunduh oleh pengguna sebagai file.
@@ -1040,4 +1212,3 @@ class DataMahasiswaHelper {
     }
 
 }
-?>

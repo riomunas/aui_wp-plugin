@@ -41,7 +41,7 @@ class Data_Certificate_List_Table extends WP_List_Table {
         
         $search = isset( $_GET['search'] ) ? sanitize_text_field( $_GET['search'] ) : '';
         
-        print_r($searh);
+        print_r($search);
 
     
         // Query data dari database dengan LIMIT dan OFFSET
